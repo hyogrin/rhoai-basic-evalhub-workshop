@@ -1,0 +1,75 @@
+:imagesdir: ../assets/images
+
+[#kmcq]
+= Korean MCQ Accuracy Benchmark
+
+This module evaluates *language and knowledge accuracy* using Korean multiple-choice benchmarks (for example HAE-RAE, KMMLU, CLIcK) through EvalHub’s Korean MCQ provider. Results are tracked in MLflow so accuracy runs share the same experiment discipline as performance jobs.
+
+== Learning Objectives
+
+* Discover Korean benchmarks registered on EvalHub
+* Submit a single-benchmark accuracy job
+* Find accuracy metrics and artifacts in MLflow
+
+== Exercise: Run the Korean MCQ Notebook
+
+[IMPORTANT]
+====
+Open the notebook and *run all cells* end-to-end.
+
+*Workbench path::*
+`{evalhub-lab-clone}/2_eval_hub_kmcq_benchmark/1_kmcq_benchmark.ipynb`
+
+*GitHub::*
+{evalhub-lab-repo}/blob/main/2_eval_hub_kmcq_benchmark/1_kmcq_benchmark.ipynb
+
+Optional follow-up for tables/reports::
+`{evalhub-lab-clone}/2_eval_hub_kmcq_benchmark/2_summarize_results.ipynb` -- {evalhub-lab-repo}/blob/main/2_eval_hub_kmcq_benchmark/2_summarize_results.ipynb
+====
+
+== Key Concept: Same Job API, Different Provider
+
+Accuracy jobs reuse `SyncEvalHubClient` and `JobSubmissionRequest`. Only the *provider* and *benchmark id* change:
+
+[source,python,subs=none]
+----
+single_request = JobSubmissionRequest(
+    name="haerae-eval",
+    description="HAE-RAE benchmark - Korean language understanding",
+    tags=["korean", "haerae", MODEL_NAME],
+    model=model,
+    benchmarks=[
+        BenchmarkConfig(
+            id="haerae",
+            provider_id=KOREAN_PROVIDER_ID,  # discovered from client.providers.list()
+            parameters={"temperature": 0.0, "max_tokens": 1024, "limit": LIMIT},
+        ),
+    ],
+    experiment=ExperimentConfig(
+        name="korean-haerae-eval",
+        tags=[
+            ExperimentTag(key="language", value="korean"),
+            ExperimentTag(key="benchmark_suite", value="haerae"),
+        ],
+    ),
+)
+
+job = client.jobs.submit(single_request)
+print(job.id, job.state.value)
+print("MLflow experiment:", job.resource.mlflow_experiment_id)
+----
+
+[TIP]
+====
+Keep `LIMIT` small during the workshop (as set in `.env`) so jobs finish in class time. Full-dataset runs belong in longer offline evaluations.
+====
+
+== Verify in MLflow
+
+. Open the experiment named by the notebook (for example `korean-haerae-eval`).
+. Confirm the run logged parameters (`benchmark`, `limit`, model name) and accuracy-related metrics.
+. Optionally open exported Markdown/HTML from the summarize notebook for a human-readable table.
+
+image::eval-result-mlflow.png[Example EvalHub evaluation results visible in MLflow]
+
+Continue to Module 5 to run *multiple* benchmarks and performance together under one experiment name.

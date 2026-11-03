@@ -1,0 +1,10 @@
+= Basic EvalHub on Red Hat AI
+
+Welcome to the *Basic EvalHub on Red Hat AI* workshop.
+
+In this hands-on lab you will learn why *evaluation-driven* practices matter for stochastic LLMs, then use *EvalHub* to run composite evaluations (performance, accuracy, and content safety) with results tracked in *MLflow* under consistent experiments.
+
+xref:module-01-introduction.adoc#introduction[Get Started -- Module 1: Introduction]
+
+* Showroom repository: https://github.com/hyogrin/rhoai-basic-evalhub-workshop
+* Lab notebooks: {evalhub-lab-repo}

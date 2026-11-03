@@ -1,0 +1,72 @@
+= Basic EvalHub on Red Hat AI
+
+A hands-on showroom workshop for evaluation-driven LLM operations on {rhoai} {rhoai-version} using *EvalHub* and *MLflow*.
+
+Participants learn why stochastic LLMs need systematic evaluation gates, run performance and accuracy jobs through EvalHub, unify results under shared MLflow experiments, and evaluate content-safety guardrails using the companion lab notebooks.
+
+Created: 2026-11-03
+
+---
+
+=== Links
+
+* *Live docs:* https://hyogrin.github.io/rhoai-basic-evalhub-workshop/modules/main/index.html
+* *Showroom repository:* https://github.com/hyogrin/rhoai-basic-evalhub-workshop
+* *Lab notebooks:* https://github.com/hyogrin/rhoai-evalhub-lab
+
+---
+
+=== Local Development
+
+==== Preview script (recommended)
+
+[source,sh]
+----
+chmod +x scripts/preview-local.sh
+./scripts/preview-local.sh            # live preview (podman → docker → npm)
+./scripts/preview-local.sh build      # static build into ./docs
+./scripts/preview-local.sh serve      # serve ./docs
+./scripts/preview-local.sh stop       # stop preview container
+----
+
+Open http://localhost:8080 in your browser.
+
+Optional environment variables:
+
+* `PORT=8080` -- HTTP port
+* `PREVIEW_ENGINE=auto|podman|docker|npm` -- force a runtime
+* `OPEN_BROWSER=1` -- open the browser automatically (macOS)
+* `SELINUX=1` -- use `:z` volume mount for SELinux hosts
+
+==== Manual container command
+
+[source,sh]
+----
+podman run --rm --name antora -v $PWD:/antora -p 8080:8080 -i -t ghcr.io/juliaaano/antora-viewer
+----
+
+For SELinux environments:
+
+[source,sh]
+----
+podman run --rm --name antora -v $PWD:/antora:z -p 8080:8080 -i -t ghcr.io/juliaaano/antora-viewer
+----
+
+==== Directory Structure
+
+[source,text]
+----
+./content/modules/ROOT/
+  assets/
+    images/                                 # Screenshots and diagrams
+  nav.adoc                                  # Navigation sidebar
+  pages/
+    index.adoc                              # Landing page
+    module-01-introduction.adoc             # Why evaluation-driven + EvalHub role
+    module-02-setup.adoc                    # Clone lab, .env, connectivity
+    module-03-guidellm.adoc                 # GuideLLM performance via EvalHub
+    module-04-kmcq.adoc                     # Korean MCQ accuracy via EvalHub
+    module-05-unified.adoc                  # Unified experiment in MLflow
+    module-06-guardrails.adoc               # Content-safety evaluation
+    module-07-closing.adoc                  # Summary and resources
+----

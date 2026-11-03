@@ -1,0 +1,95 @@
+:imagesdir: ../assets/images
+
+[#setup]
+= Setup EvalHub and MLflow
+
+In this module you prepare the workbench, point the EvalHub SDK at your cluster service, and confirm MLflow connectivity. Full installation steps live in the lab notebook -- run it end-to-end, then use the snippets below to understand what matters.
+
+== Learning Objectives
+
+* Clone the EvalHub lab into your workbench
+* Configure `.env` for model endpoint, EvalHub URL, and MLflow
+* Verify EvalHub API reachability with the Python SDK
+
+== Exercise: Run the Setup Notebook
+
+[IMPORTANT]
+====
+Open the notebook and *run all cells* from top to bottom.
+
+*Workbench path (after clone)::*
+`{evalhub-lab-clone}/0_setup/1_eval_hub_setup.ipynb`
+
+*GitHub::*
+{evalhub-lab-repo}/blob/main/0_setup/1_eval_hub_setup.ipynb
+====
+
+=== Step 2.1: Clone the Lab
+
+In your workbench terminal:
+
+[source,sh,role="execute"]
+----
+git clone https://github.com/hyogrin/rhoai-evalhub-lab.git
+cd rhoai-evalhub-lab
+cp sample.env .env
+----
+
+Edit `.env` with values from your instructor (or cluster owner). Typical keys:
+
+[cols="1,2",options="header"]
+|===
+| Variable | Purpose
+
+| `NAMESPACE`
+| Data science project / tenant used by EvalHub jobs
+
+| `MODEL_NAME` / `MODEL_ENDPOINT` / `MODEL_API_KEY`
+| Target LLM (MaaS or cluster-deployed)
+
+| `EVALHUB_URL` / `EVALHUB_AUTH_TOKEN`
+| EvalHub service URL and bearer token (`oc whoami -t` often works)
+
+| `MLFLOW_TRACKING_URI`
+| MLflow tracking server used by EvalHub experiments
+|===
+
+=== Step 2.2: What the Notebook Configures
+
+The setup notebook installs dependencies, resolves auth, and checks that EvalHub responds. Conceptually:
+
+[source,python,subs=none]
+----
+import os
+from dotenv import load_dotenv
+from evalhub import SyncEvalHubClient
+
+load_dotenv(dotenv_path="../.env", override=True)
+
+EVALHUB_URL = os.getenv("EVALHUB_URL")
+EVALHUB_AUTH_TOKEN = os.getenv("EVALHUB_AUTH_TOKEN")
+NAMESPACE = os.getenv("NAMESPACE", "demo")
+
+client = SyncEvalHubClient(
+    base_url=EVALHUB_URL,
+    auth_token=EVALHUB_AUTH_TOKEN,
+    insecure=True,
+    tenant=NAMESPACE,
+)
+
+# Connectivity check -- list providers / health as the notebook does
+providers = client.providers.list()
+print(f"Providers available: {len(providers)}")
+----
+
+[TIP]
+====
+Workshop participants usually receive a pre-deployed EvalHub + MLflow. Cluster owners can use the same lab repo docs and sample manifests under `0_setup/samples/` to deploy services first.
+====
+
+== Verify
+
+. In the {productname-short} dashboard, open *Experiments* under *MLflow* and confirm you can list experiments for your project.
+. From the notebook output, confirm EvalHub URL and auth succeeded (no HTTP 401/404 on provider listing).
+
+When setup succeeds, proceed to Module 3 to submit your first performance job.

@@ -1,0 +1,77 @@
+:imagesdir: ../assets/images
+
+[#closing]
+= Closing and Resources
+
+Congratulations -- you have completed the *Basic EvalHub on Red Hat AI* workshop!
+
+== What You Accomplished
+
+[cols="1,3",options="header"]
+|===
+| Module | What You Did
+
+| 1 -- Introduction
+| Connected LLM stochasticity to the need for evaluation-driven gates, and positioned EvalHub as a unified orchestrator with MLflow experiment tracking
+
+| 2 -- Setup
+| Cloned the lab, configured `.env`, and verified EvalHub + MLflow connectivity
+
+| 3 -- GuideLLM
+| Submitted performance jobs through EvalHub and inspected latency/throughput style metrics in MLflow
+
+| 4 -- Korean MCQ
+| Ran an accuracy benchmark via the same job API and reviewed MLflow metrics/artifacts
+
+| 5 -- Unified evaluation
+| Combined multi-benchmark accuracy and GuideLLM performance under one MLflow experiment
+
+| 6 -- Guardrails
+| Compared regex vs content-safety behaviour and measured safety metrics on Korean hate-speech data
+|===
+
+== Key Takeaways
+
+* *Stochastic models need gates* -- demos and HTTP success codes are not quality signals.
+* *EvalHub reduces evaluator sprawl* -- GuideLLM and Korean MCQ share one SDK job shape instead of isolated toolchains.
+* *MLflow is the shared experiment record* -- composite evaluation is only useful if runs stay comparable over time.
+* *Safety is a third dimension* -- guardrail evaluation complements accuracy and performance for production readiness.
+
+[cols="1,2,2",options="header"]
+|===
+| Dimension | Questions it answers | In this workshop
+
+| Performance
+| How fast? How much throughput?
+| GuideLLM via EvalHub → MLflow
+
+| Accuracy
+| How often is the answer right?
+| Korean MCQ via EvalHub → MLflow
+
+| Safety
+| What harmful content is blocked or missed?
+| Guardrails notebooks → metrics / HTML report
+|===
+
+== Additional Resources
+
+=== Lab and Showroom
+
+* Lab notebooks: {evalhub-lab-repo}
+* This showroom: https://github.com/hyogrin/rhoai-basic-evalhub-workshop
+
+=== {productname-long}
+
+* https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/{rhoai-version}[{productname-long} {rhoai-version} Documentation]
+* https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/{rhoai-version}/html/serving_models[Serving Models on {productname-short}]
+
+=== MLflow
+
+* https://mlflow.org/docs/latest/tracking.html[MLflow Tracking Guide]
+* https://mlflow.org/docs/latest/llms/index.html[MLflow for LLMs]
+
+=== Related Workshops
+
+* https://hyogrin.github.io/rhoai-basic-agentops-workshop/[Basic AgentOps on Red Hat AI] -- logs, traces, and GPU metrics for AI applications
+* https://rhpds.github.io/agentops-in-prod-showroom/[AgentOps Observability with Red Hat AI] -- advanced observability showroom

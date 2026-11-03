@@ -1,0 +1,130 @@
+:imagesdir: ../assets/images
+
+[#introduction]
+= Introduction -- Why Evaluation-Driven LLM Ops?
+
+Traditional software testing assumes *deterministic* behaviour: the same input produces the same output. Large language models break that assumption. Sampling, temperature, and context shifts mean the *same prompt* can produce different answers across runs. Shipping LLM features on a handful of manual demos is not enough.
+
+This workshop shows an *evaluation-driven* approach on {productname-short}: measure quality dimensions deliberately, orchestrate multiple evaluators through *EvalHub*, and record comparable results in *MLflow*.
+
+== Why Stochastic Models Need Evaluation Gates
+
+A chat UI that returns `200 OK` does not tell you whether the answer is correct, fast enough, or safe. Without systematic evaluation you cannot:
+
+* Reproduce regressions when a prompt, model, or serving config changes
+* Compare candidate models on the same benchmarks
+* Separate *accuracy*, *latency/throughput*, and *content safety* as independent release criteria
+
+[cols="1,2",options="header"]
+|===
+| Challenge | Why it matters
+
+| *Non-deterministic outputs*
+| Bugs are hard to reproduce; “it worked in the demo” is not a quality signal
+
+| *Multi-dimension quality*
+| A model can score well on accuracy and still fail latency or safety gates
+
+| *Evaluator sprawl*
+| Running GuideLLM, lm-evaluation-harness, and custom scripts separately produces incomparable artifacts
+
+| *No shared experiment record*
+| Without a common MLflow experiment surface, model/config comparisons drift into spreadsheets
+|===
+
+== What EvalHub Provides
+
+*EvalHub* (GA in {rhoai-short} {rhoai-version}) is a lightweight REST API and Python SDK, managed by the TrustyAI Operator. It orchestrates LLM evaluations across multiple backends instead of forcing you to wire each evaluator SDK in isolation.
+
+In this workshop the focus is:
+
+* *Composite evaluation* -- performance (GuideLLM), Korean MCQ accuracy, and content-safety guardrails as complementary gates
+* *One experiment surface* -- EvalHub jobs write params, metrics, and artifacts to *MLflow* so runs stay comparable
+
+[cols="1,2,2",options="header"]
+|===
+| Without EvalHub | With EvalHub | Workshop emphasis
+
+| Separate CLIs/SDKs per evaluator
+| Single client: `SyncEvalHubClient` + `JobSubmissionRequest`
+| One submission shape for many benchmarks
+
+| Ad-hoc result folders
+| Centralized job API + MLflow tracking
+| Same experiment for multi-benchmark and unified jobs
+
+| Hard to reuse auth/model config
+| Shared `ModelConfig` / `.env` targeting MaaS or KServe
+| Reproducible workbench setup
+|===
+
+[NOTE]
+====
+Module 6 (Guardrails) complements Hub-backed accuracy and performance jobs. Content-safety evaluation uses NeMo Guardrails / Kanana Safeguard notebooks from the lab and produces metrics and HTML reports you can compare side by side.
+====
+
+== What You Will Learn
+
+[cols="1,3,1",options="header"]
+|===
+| Module | Title | Type
+
+| 1
+| Introduction -- Why Evaluation-Driven
+| Overview
+
+| 2
+| Setup EvalHub and MLflow
+| Hands-on
+
+| 3
+| GuideLLM Performance Benchmark
+| Hands-on
+
+| 4
+| Korean MCQ Accuracy Benchmark
+| Hands-on
+
+| 5
+| Unified Evaluation in One Experiment
+| Hands-on
+
+| 6
+| Guardrails Evaluation
+| Hands-on
+|===
+
+By the end, you will be able to:
+
+* Explain why evaluation gates matter for stochastic LLMs
+* Configure the EvalHub SDK against a cluster endpoint with MLflow tracking
+* Submit performance and accuracy jobs through EvalHub and inspect results in MLflow
+* Run a unified accuracy + performance experiment under a single MLflow experiment name
+* Evaluate content-safety guardrails on Korean hate-speech data and interpret precision/recall trade-offs
+
+== How Hands-On Modules Work
+
+Each hands-on module follows the same pattern:
+
+. *Open the lab notebook* (workbench path after clone *and* GitHub link)
+. *Run all cells* end-to-end in the notebook -- the lab is the source of truth
+. *Read the key snippet* in the showroom to understand the EvalHub / evaluation essence
+. *Verify results* in the MLflow UI (or the generated HTML report for guardrails)
+
+Lab notebooks live in a separate repository: {evalhub-lab-repo}
+
+== Prerequisites
+
+Before starting, confirm the following are ready:
+
+* A running {ocp} cluster with {rhoai-short} {rhoai-version} installed
+* TrustyAI Operator available; EvalHub and MLflow deployed (setup notebook can help verify)
+* A model endpoint -- *MaaS* (URL + API key) or *KServe* InferenceService with vLLM
+* A {productname-short} workbench with `oc` CLI access
+* A Hugging Face token when benchmarks or models require it
+* Your login credentials (username and password provided by your instructor)
+
+[TIP]
+====
+For scripted cluster preparation (MLflow, operators, dashboard features), see the https://github.com/jingggg-wenn/rhoai-sno-setup-guide[RHOAI 3.5 SNO Setup Guide].
+====

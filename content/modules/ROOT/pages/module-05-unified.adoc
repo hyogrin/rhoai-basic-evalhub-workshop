@@ -1,0 +1,96 @@
+:imagesdir: ../assets/images
+
+[#unified]
+= Unified Evaluation in One Experiment
+
+Modules 3 and 4 showed performance and accuracy as separate jobs. Production model selection needs *both* -- and comparable history. This module uses EvalHub to run multi-benchmark Korean MCQ jobs and GuideLLM performance under a *shared MLflow experiment name*.
+
+== Learning Objectives
+
+* Submit multi-benchmark accuracy requests in one job payload
+* Attach accuracy and performance jobs to the same `ExperimentConfig` name
+* Compare runs inside a single MLflow experiment
+
+== Exercise: Run the Unified Benchmark Notebook
+
+[IMPORTANT]
+====
+Open the notebook and *run all cells* end-to-end.
+
+*Workbench path::*
+`{evalhub-lab-clone}/3_eval_hub_unified_benchmark/1_unified_benchmark.ipynb`
+
+*GitHub::*
+{evalhub-lab-repo}/blob/main/3_eval_hub_unified_benchmark/1_unified_benchmark.ipynb
+====
+
+== Key Concept: Composite Jobs, Shared Experiment
+
+=== Multi-benchmark accuracy
+
+Several Korean tasks can be declared in one `JobSubmissionRequest`:
+
+[source,python,subs=none]
+----
+multi_request = JobSubmissionRequest(
+    name="korean-multi-benchmark",
+    description="KMMLU + CLIcK + HAE-RAE",
+    tags=["korean", "comprehensive", "multi-benchmark"],
+    model=model,
+    benchmarks=[
+        BenchmarkConfig(id="kmmlu", provider_id=KOREAN_PROVIDER_ID,
+                        parameters={"temperature": 0.0, "max_tokens": 1024, "limit": LIMIT}),
+        BenchmarkConfig(id="click", provider_id=KOREAN_PROVIDER_ID,
+                        parameters={"temperature": 0.0, "max_tokens": 1024, "limit": LIMIT}),
+        BenchmarkConfig(id="haerae", provider_id=KOREAN_PROVIDER_ID,
+                        parameters={"temperature": 0.0, "max_tokens": 1024, "limit": LIMIT}),
+    ],
+    experiment=ExperimentConfig(name="korean-comprehensive-eval"),
+)
+----
+
+=== Unified accuracy + performance
+
+The notebook builds a shared experiment name (for example `$MODEL_NAME-full-eval-<timestamp>`), submits accuracy jobs for several benchmarks, then submits a GuideLLM throughput job with the *same* `ExperimentConfig(name=...)`.
+
+[source,python,subs=none]
+----
+EXPERIMENT_NAME = f"{MODEL_NAME}-full-eval-{ts}"
+
+# Accuracy jobs (loop over click, haerae, kmmlu, ...)
+# each uses: experiment=ExperimentConfig(name=EXPERIMENT_NAME)
+
+perf_request = JobSubmissionRequest(
+    name=f"unified-perf-{MODEL_NAME}-{ts}",
+    description=f"GuideLLM throughput test for {MODEL_NAME}",
+    tags=["unified", "performance", "guidellm", MODEL_NAME],
+    model=guidellm_model,
+    benchmarks=[
+        BenchmarkConfig(
+            id="throughput",
+            provider_id="guidellm",
+            parameters={
+                "profile": "throughput",
+                "max_seconds": 180,
+                "max_requests": 50,
+                "data": "prompt_tokens=128,output_tokens=64",
+                "request_type": "chat_completions",
+            },
+        )
+    ],
+    experiment=ExperimentConfig(name=EXPERIMENT_NAME),
+)
+----
+
+This is the workshop’s core EvalHub value: you are not stitching separate SDK result folders -- you are recording a *composite evaluation story* in one MLflow experiment.
+
+== Verify in MLflow
+
+. Open the unified experiment name printed by the notebook.
+. Confirm multiple runs (per benchmark / performance) appear under that experiment.
+. Compare accuracy metrics alongside throughput / latency metrics for the same model revision.
+
+[TIP]
+====
+When comparing models later, keep benchmark ids, `limit`, and GuideLLM profiles constant so MLflow diffs stay meaningful.
+====
