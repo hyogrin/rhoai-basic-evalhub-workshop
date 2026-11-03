@@ -205,6 +205,11 @@ print(job.id, job.state.value)
 print("MLflow experiment:", job.resource.mlflow_experiment_id)</code></pre>
 </div>
 </div>
+<div class="imageblock">
+<div class="content">
+<img src="_images/img-kmcq-notebook-job.png" alt="Korean MCQ job submitted with MLflow experiment id">
+</div>
+</div>
 <div class="admonitionblock tip">
 <table>
 <tr>
@@ -231,16 +236,21 @@ print("MLflow experiment:", job.resource.mlflow_experiment_id)</code></pre>
 </li>
 <li>
 <p>Confirm the run logged parameters (<code>benchmark</code>, <code>limit</code>, model name) and accuracy-related metrics.</p>
+<div class="imageblock">
+<div class="content">
+<img src="_images/img-kmcq-mlflow-metrics.png" alt="Korean MCQ accuracy metrics in MLflow">
+</div>
+</div>
 </li>
 <li>
 <p>Optionally open exported Markdown/HTML from the summarize notebook for a human-readable table.</p>
-</li>
-</ol>
-</div>
 <div class="imageblock">
 <div class="content">
-<img src="_images/eval-result-mlflow.png" alt="Example EvalHub evaluation results visible in MLflow">
+<img src="_images/img-kmcq-summary-report.png" alt="Korean MCQ summary report table">
 </div>
+</div>
+</li>
+</ol>
 </div>
 <div class="paragraph">
 <p>Continue to Module 5 to run <strong>multiple</strong> benchmarks and performance together under one experiment name.</p>

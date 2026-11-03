@@ -16,4 +16,11 @@ chmod +x scripts/preview-local.sh
 ./scripts/preview-local.sh stop       # stop preview container
 ```
 
+## Screenshots
+
+Module pages reference placeholder images under `content/modules/ROOT/assets/images/`.
+Capture the real UI, then overwrite the file with the **same name** listed in
+[`content/modules/ROOT/assets/images/SCREENSHOTS.md`](content/modules/ROOT/assets/images/SCREENSHOTS.md)
+— no AsciiDoc edits needed.
+
 See [README.adoc](README.adoc) for more local development details.

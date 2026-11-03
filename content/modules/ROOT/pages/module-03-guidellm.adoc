@@ -71,11 +71,21 @@ print(job.id, job.state.value)
 
 The notebook also walks through sweep and constant-load variants. You do not need to retype them here -- run the notebook cells and watch job state until completion.
 
+// CAPTURE: notebook showing GuideLLM job id + completed state
+image::img-guidellm-notebook-job.png[GuideLLM evaluation job completed in the notebook]
+
 == Verify in MLflow
 
 . Open *Experiments* in the {productname-short} / MLflow UI.
 . Select the experiment name created by the job (for example `guidellm-quick-...` or the name printed by the notebook).
++
+// CAPTURE: MLflow experiment selection for GuideLLM
+image::img-guidellm-mlflow-experiment.png[Selecting the GuideLLM experiment in MLflow]
+
 . Inspect logged metrics such as output tokens/sec, request rate, and latency percentiles.
++
+// CAPTURE: MLflow run metrics for performance
+image::img-guidellm-mlflow-metrics.png[GuideLLM performance metrics in an MLflow run]
 
 [NOTE]
 ====

@@ -52,13 +52,21 @@ For SELinux environments:
 podman run --rm --name antora -v $PWD:/antora:z -p 8080:8080 -i -t ghcr.io/juliaaano/antora-viewer
 ----
 
+==== Screenshots
+
+Placeholder PNGs live in `content/modules/ROOT/assets/images/`.
+Replace a file with a real capture using the *exact same filename* -- the page picks it up on the next build/preview.
+
+Capture targets are listed in `content/modules/ROOT/assets/images/SCREENSHOTS.md`.
+
 ==== Directory Structure
 
 [source,text]
 ----
 ./content/modules/ROOT/
   assets/
-    images/                                 # Screenshots and diagrams
+    images/                                 # Screenshots (see SCREENSHOTS.md)
+    images/SCREENSHOTS.md                   # Capture checklist + exact filenames
   nav.adoc                                  # Navigation sidebar
   pages/
     index.adoc                              # Landing page

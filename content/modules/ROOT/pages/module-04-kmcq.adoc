@@ -59,6 +59,9 @@ print(job.id, job.state.value)
 print("MLflow experiment:", job.resource.mlflow_experiment_id)
 ----
 
+// CAPTURE: notebook job submit output including MLflow experiment id
+image::img-kmcq-notebook-job.png[Korean MCQ job submitted with MLflow experiment id]
+
 [TIP]
 ====
 Keep `LIMIT` small during the workshop (as set in `.env`) so jobs finish in class time. Full-dataset runs belong in longer offline evaluations.
@@ -68,8 +71,13 @@ Keep `LIMIT` small during the workshop (as set in `.env`) so jobs finish in clas
 
 . Open the experiment named by the notebook (for example `korean-haerae-eval`).
 . Confirm the run logged parameters (`benchmark`, `limit`, model name) and accuracy-related metrics.
-. Optionally open exported Markdown/HTML from the summarize notebook for a human-readable table.
++
+// CAPTURE: MLflow accuracy metrics for Korean MCQ run
+image::img-kmcq-mlflow-metrics.png[Korean MCQ accuracy metrics in MLflow]
 
-image::eval-result-mlflow.png[Example EvalHub evaluation results visible in MLflow]
+. Optionally open exported Markdown/HTML from the summarize notebook for a human-readable table.
++
+// CAPTURE: summarize notebook HTML/Markdown report
+image::img-kmcq-summary-report.png[Korean MCQ summary report table]
 
 Continue to Module 5 to run *multiple* benchmarks and performance together under one experiment name.

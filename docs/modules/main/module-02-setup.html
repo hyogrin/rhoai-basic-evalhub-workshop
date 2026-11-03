@@ -173,6 +173,11 @@ cd rhoai-evalhub-lab
 cp sample.env .env</code></pre>
 </div>
 </div>
+<div class="imageblock">
+<div class="content">
+<img src="_images/img-setup-workbench-clone.png" alt="Workbench terminal after cloning rhoai-evalhub-lab">
+</div>
+</div>
 <div class="paragraph">
 <p>Edit <code>.env</code> with values from your instructor (or cluster owner). Typical keys:</p>
 </div>
@@ -206,6 +211,11 @@ cp sample.env .env</code></pre>
 </tr>
 </tbody>
 </table>
+<div class="imageblock">
+<div class="content">
+<img src="_images/img-setup-env-configured.png" alt="Notebook configuration output after loading .env">
+</div>
+</div>
 </div>
 <div class="sect2">
 <h3 id="_step_2_2_what_the_notebook_configures"><a class="anchor" href="#_step_2_2_what_the_notebook_configures"></a>Step 2.2: What the Notebook Configures</h3>
@@ -236,6 +246,11 @@ providers = client.providers.list()
 print(f"Providers available: {len(providers)}")</code></pre>
 </div>
 </div>
+<div class="imageblock">
+<div class="content">
+<img src="_images/img-setup-evalhub-providers.png" alt="EvalHub provider list confirming connectivity">
+</div>
+</div>
 <div class="admonitionblock tip">
 <table>
 <tr>
@@ -260,6 +275,11 @@ print(f"Providers available: {len(providers)}")</code></pre>
 <ol class="arabic">
 <li>
 <p>In the OpenShift AI dashboard, open <strong>Experiments</strong> under <strong>MLflow</strong> and confirm you can list experiments for your project.</p>
+<div class="imageblock">
+<div class="content">
+<img src="_images/img-setup-mlflow-experiments.png" alt="MLflow Experiments list in the OpenShift AI dashboard">
+</div>
+</div>
 </li>
 <li>
 <p>From the notebook output, confirm EvalHub URL and auth succeeded (no HTTP 401/404 on provider listing).</p>

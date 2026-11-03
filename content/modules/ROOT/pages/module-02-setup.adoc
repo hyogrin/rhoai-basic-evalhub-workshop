@@ -35,6 +35,9 @@ cd rhoai-evalhub-lab
 cp sample.env .env
 ----
 
+// CAPTURE: workbench terminal after successful clone
+image::img-setup-workbench-clone.png[Workbench terminal after cloning rhoai-evalhub-lab]
+
 Edit `.env` with values from your instructor (or cluster owner). Typical keys:
 
 [cols="1,2",options="header"]
@@ -53,6 +56,9 @@ Edit `.env` with values from your instructor (or cluster owner). Typical keys:
 | `MLFLOW_TRACKING_URI`
 | MLflow tracking server used by EvalHub experiments
 |===
+
+// CAPTURE: notebook Step 0 config printout (redact secrets)
+image::img-setup-env-configured.png[Notebook configuration output after loading .env]
 
 === Step 2.2: What the Notebook Configures
 
@@ -82,6 +88,9 @@ providers = client.providers.list()
 print(f"Providers available: {len(providers)}")
 ----
 
+// CAPTURE: successful providers.list() / connectivity cell output
+image::img-setup-evalhub-providers.png[EvalHub provider list confirming connectivity]
+
 [TIP]
 ====
 Workshop participants usually receive a pre-deployed EvalHub + MLflow. Cluster owners can use the same lab repo docs and sample manifests under `0_setup/samples/` to deploy services first.
@@ -90,6 +99,10 @@ Workshop participants usually receive a pre-deployed EvalHub + MLflow. Cluster o
 == Verify
 
 . In the {productname-short} dashboard, open *Experiments* under *MLflow* and confirm you can list experiments for your project.
++
+// CAPTURE: RHOAI Dashboard → MLflow Experiments
+image::img-setup-mlflow-experiments.png[MLflow Experiments list in the OpenShift AI dashboard]
+
 . From the notebook output, confirm EvalHub URL and auth succeeded (no HTTP 401/404 on provider listing).
 
 When setup succeeds, proceed to Module 3 to submit your first performance job.

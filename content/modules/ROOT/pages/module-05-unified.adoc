@@ -82,13 +82,23 @@ perf_request = JobSubmissionRequest(
 )
 ----
 
+// CAPTURE: notebook printing the shared EXPERIMENT_NAME
+image::img-unified-notebook-experiment.png[Unified evaluation experiment name printed in the notebook]
+
 This is the workshop’s core EvalHub value: you are not stitching separate SDK result folders -- you are recording a *composite evaluation story* in one MLflow experiment.
 
 == Verify in MLflow
 
 . Open the unified experiment name printed by the notebook.
 . Confirm multiple runs (per benchmark / performance) appear under that experiment.
++
+// CAPTURE: MLflow runs list under the shared experiment
+image::img-unified-mlflow-runs.png[Multiple accuracy and performance runs under one MLflow experiment]
+
 . Compare accuracy metrics alongside throughput / latency metrics for the same model revision.
++
+// CAPTURE: MLflow compare view for unified runs
+image::img-unified-mlflow-compare.png[Comparing unified evaluation runs in MLflow]
 
 [TIP]
 ====

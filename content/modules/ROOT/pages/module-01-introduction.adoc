@@ -32,6 +32,9 @@ A chat UI that returns `200 OK` does not tell you whether the answer is correct,
 | Without a common MLflow experiment surface, model/config comparisons drift into spreadsheets
 |===
 
+// CAPTURE: three quality gates visual (perf / accuracy / safety)
+image::img-eval-dimensions.png[Three evaluation dimensions: performance, accuracy, and safety]
+
 == What EvalHub Provides
 
 *EvalHub* (GA in {rhoai-short} {rhoai-version}) is a lightweight REST API and Python SDK, managed by the TrustyAI Operator. It orchestrates LLM evaluations across multiple backends instead of forcing you to wire each evaluator SDK in isolation.
@@ -57,6 +60,9 @@ In this workshop the focus is:
 | Shared `ModelConfig` / `.env` targeting MaaS or KServe
 | Reproducible workbench setup
 |===
+
+// CAPTURE: architecture diagram or console view of EvalHub + providers + MLflow
+image::img-evalhub-architecture.png[EvalHub orchestrates evaluation providers and records results in MLflow]
 
 [NOTE]
 ====
