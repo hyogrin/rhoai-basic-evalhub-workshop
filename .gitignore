@@ -14,8 +14,11 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
+# Only ignore a root-level lib/ (Python packaging). Do NOT ignore content/lib/ (Antora extensions).
+/lib/
 lib64/
+!content/lib/
+!content/lib/**
 parts/
 sdist/
 var/
