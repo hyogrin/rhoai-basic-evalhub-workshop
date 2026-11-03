@@ -1,0 +1,1 @@
+# rhoai-basic-evalhub-workshop
