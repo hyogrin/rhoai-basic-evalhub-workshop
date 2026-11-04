@@ -169,7 +169,7 @@
 <p>Open the <strong>Web Terminal</strong> from the terminal icon in the OpenShift console. Run <strong>all <code>oc</code> commands in this module in Web Terminal</strong>. Use the Workbench terminal later only to clone the lab and install Python dependencies.</p>
 </div>
 <div class="paragraph">
-<p>Run the single block below in Web Terminal. It prompts for four values:</p>
+<p>Run the command below once in Web Terminal. It downloads and runs the workshop setup script, which prompts for four values:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -191,87 +191,24 @@
 <p>The script retrieves <strong>EvalHub URL, your current OpenShift token, and MLflow tracking URI together</strong>, then prints all seven <code>.env</code> variables. It reads cluster resources and does not change them.</p>
 </div>
 <div class="paragraph">
-<p>This lab uses an EvalHub resource/service named <code>evalhub</code> in your assigned namespace, and a shared HTTPS MLflow service named <code>mlflow</code> in <code>redhat-ods-applications</code> on port <code>8443</code>. If your instructor uses a shared EvalHub or another MLflow namespace, update <code>EVALHUB_NAMESPACE</code> or <code>MLFLOW_NAMESPACE</code> in the block before running it.</p>
+<p>This lab hosts the shared EvalHub and MLflow services in <code>redhat-ods-applications</code>. The script looks for the resource/service named <code>evalhub</code> and the HTTPS service named <code>mlflow</code> in that namespace by default. The internal HTTPS service port is <code>8443</code>.</p>
+</div>
+<div class="paragraph">
+<p><code>NAMESPACE</code> remains your assigned evaluation tenant (<code>user1</code>, <code>user2</code>, <code>user3</code>, &#8230;&#8203;), even though the services run in <code>redhat-ods-applications</code>. If your instructor deploys either service elsewhere, export <code>EVALHUB_NAMESPACE</code> or <code>MLFLOW_NAMESPACE</code> with its deployment namespace before running the command. Do not change <code>NAMESPACE</code> to the shared services namespace.</p>
 </div>
 <div class="listingblock execute">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">bash &lt;&lt;'SETUP'
-set -euo pipefail
-
-fail() {
-    printf 'ERROR: %s\n' "$1" &gt;&amp;2
-    exit 1
-}
-
-# Web Terminal is already authenticated as your OpenShift user.
-EVALHUB_AUTH_TOKEN=$(oc whoami -t)
-[[ -n "$EVALHUB_AUTH_TOKEN" ]] || fail "No OpenShift token is available. Reopen Web Terminal after signing in."
-
-read -r -p "Assigned namespace (user1, user2, user3, ...): " NAMESPACE &lt;/dev/tty
-read -r -p "Served model ID: " MODEL_NAME &lt;/dev/tty
-read -r -p "Model API base URL (including /v1 when required): " MODEL_ENDPOINT &lt;/dev/tty
-read -r -s -p "Model API key (Enter only for an unauthenticated endpoint): " MODEL_API_KEY &lt;/dev/tty
-printf '\n' &gt;/dev/tty
-
-[[ -n "$NAMESPACE" &amp;&amp; -n "$MODEL_NAME" &amp;&amp; -n "$MODEL_ENDPOINT" ]] \
-    || fail "Namespace, model ID, and model endpoint are required."
-
-EVALHUB_NAMESPACE="$NAMESPACE"
-MLFLOW_NAMESPACE=redhat-ods-applications
-
-# Prefer the named EvalHub route, preserving its scheme and base path.
-EVALHUB_URL=$(oc get route evalhub -n "$EVALHUB_NAMESPACE" \
-    -o go-template='{{if eq .spec.to.name "evalhub"}}{{if .spec.tls}}https{{else}}http{{end}}://{{.spec.host}}{{with .spec.path}}{{.}}{{end}}{{end}}' \
-    2&gt;/dev/null || true)
-
-# A Workbench in the same cluster can also use the internal HTTPS service.
-if [[ -z "$EVALHUB_URL" ]]; then
-    EVALHUB_PORT=$(oc get svc evalhub -n "$EVALHUB_NAMESPACE" \
-        -o jsonpath='{.spec.ports[?(@.port==8443)].port}')
-    [[ -n "$EVALHUB_PORT" ]] || fail "The expected EvalHub HTTPS service port 8443 was not found."
-    EVALHUB_URL="https://evalhub.${EVALHUB_NAMESPACE}.svc.cluster.local:${EVALHUB_PORT}"
-fi
-
-# Read the tracking URI explicitly configured on EvalHub, when present.
-MLFLOW_TRACKING_URI=$(oc get evalhub evalhub -n "$EVALHUB_NAMESPACE" \
-    -o jsonpath='{.spec.env[?(@.name=="MLFLOW_TRACKING_URI")].value}' \
-    2&gt;/dev/null || true)
-
-# Otherwise, verify and use this lab's shared HTTPS MLflow service.
-if [[ -z "$MLFLOW_TRACKING_URI" ]]; then
-    MLFLOW_PORT=$(oc get svc mlflow -n "$MLFLOW_NAMESPACE" \
-        -o jsonpath='{.spec.ports[?(@.port==8443)].port}')
-    [[ -n "$MLFLOW_PORT" ]] || fail "The expected MLflow HTTPS service port 8443 was not found."
-    MLFLOW_TRACKING_URI="https://mlflow.${MLFLOW_NAMESPACE}.svc:${MLFLOW_PORT}"
-fi
-
-# Expand a short MLflow service hostname relative to EvalHub's namespace.
-case "$MLFLOW_TRACKING_URI" in
-    http://mlflow:*|https://mlflow:*)
-        MLFLOW_SCHEME="${MLFLOW_TRACKING_URI%%://*}"
-        MLFLOW_ADDRESS="${MLFLOW_TRACKING_URI#*://mlflow:}"
-        MLFLOW_TRACKING_URI="${MLFLOW_SCHEME}://mlflow.${EVALHUB_NAMESPACE}.svc:${MLFLOW_ADDRESS}"
-        ;;
-esac
-
-# Single quotes preserve spaces and # characters when python-dotenv reads values.
-print_env() {
-    local value="$2"
-    local escaped_backslash='\\'
-    local escaped_quote="\\'"
-    value="${value//\\/$escaped_backslash}"
-    value="${value//\'/$escaped_quote}"
-    printf "%s='%s'\n" "$1" "$value"
-}
-
-printf '\n# BEGIN .env - copy from NAMESPACE through MLFLOW_TRACKING_URI\n'
-for key in NAMESPACE MODEL_NAME MODEL_ENDPOINT MODEL_API_KEY \
-    EVALHUB_URL EVALHUB_AUTH_TOKEN MLFLOW_TRACKING_URI; do
-    print_env "$key" "${!key}"
-done
-printf '# END .env\n'
-SETUP</code></pre>
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">(
+    set -o pipefail
+    curl -fsSL https://raw.githubusercontent.com/hyogrin/rhoai-basic-evalhub-workshop/refs/heads/main/scripts/setup-env.sh | bash
+)</code></pre>
 </div>
+</div>
+<div class="paragraph">
+<p>The script reads prompts from the terminal so they work with <code>curl | bash</code>. <code>curl -fsSL</code> follows redirects, reports download errors, and rejects HTTP error responses; <code>pipefail</code> also makes a failed download fail the entire command. Keep the surrounding parentheses so this setting applies only to this command. The script checks for an interactive terminal, <code>oc</code>, and an authenticated OpenShift user before collecting configuration.</p>
+</div>
+<div class="paragraph">
+<p>You can inspect the <a href="https://github.com/hyogrin/rhoai-basic-evalhub-workshop/blob/main/scripts/setup-env.sh">setup script source</a> before running it.</p>
 </div>
 <div class="paragraph">
 <p>The output contains your assigned namespace, three model settings, and three discovered connection settings, with literal values ready to paste. For example:</p>
@@ -282,7 +219,7 @@ SETUP</code></pre>
 MODEL_NAME='your-served-model-id'
 MODEL_ENDPOINT='https://your-model-endpoint.example.com/v1'
 MODEL_API_KEY='your-model-api-key'
-EVALHUB_URL='https://evalhub-user1.apps.your-cluster.example.com'
+EVALHUB_URL='https://evalhub.redhat-ods-applications.svc.cluster.local:8443'
 EVALHUB_AUTH_TOKEN='your-current-openshift-token'
 MLFLOW_TRACKING_URI='https://mlflow.redhat-ods-applications.svc:8443'</code></pre>
 </div>
