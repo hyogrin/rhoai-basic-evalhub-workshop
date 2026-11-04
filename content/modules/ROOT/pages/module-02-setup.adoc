@@ -1,21 +1,21 @@
 :imagesdir: ../assets/images
 
-[#setup]
 = Setup EvalHub and MLflow
 
-In this module you prepare the workbench, point the EvalHub SDK at your cluster service, and confirm MLflow connectivity. Full installation steps live in the lab notebook -- run it end-to-end, then use the snippets below to understand what matters.
+[#setup]
+In this module you prepare the workbench, configure the model, EvalHub, and MLflow connections in `.env`, and verify connectivity with the setup notebook. EvalHub and MLflow must already be deployed, with access to your assigned project configured by your instructor.
 
 == Learning Objectives
 
 * Clone the EvalHub lab into your workbench
-* Configure `.env` for model endpoint, EvalHub URL, and MLflow
+* Collect the connection settings in Web Terminal and apply them to `.env` together
 * Verify EvalHub API reachability with the Python SDK
 
 == Exercise: Run the Setup Notebook
 
 [IMPORTANT]
 ====
-Open the notebook and *run all cells* from top to bottom.
+Complete Step 2.1 below before opening the notebook. Then run *Step 0: Load Configuration* and continue through the setup notebook as directed by your instructor.
 
 *Workbench path (after clone)::*
 `{evalhub-lab-clone}/0_setup/1_eval_hub_setup.ipynb`
@@ -24,45 +24,168 @@ Open the notebook and *run all cells* from top to bottom.
 {evalhub-lab-repo}/blob/main/0_setup/1_eval_hub_setup.ipynb
 ====
 
-=== Step 2.1: Clone the Lab
+[#_step_2_1_clone_the_lab]
+=== Step 2.1: Collect and Apply the Environment
 
-In your workbench terminal:
+==== A. Web Terminal: Generate the Complete `.env` Block
+
+Open the *Web Terminal* from the terminal icon in the OpenShift console. Run *all `oc` commands in this module in Web Terminal*. Use the Workbench terminal later only to clone the lab and install Python dependencies.
+
+Run the single block below in Web Terminal. It prompts for four values:
+
+* Your assigned lab namespace: `user1`, `user2`, `user3`, and so on. Use your actual assigned namespace, regardless of Web Terminal's current project (`openshift-terminal`).
+* The exact served `MODEL_NAME`, from the deployed model details or MaaS model catalog. The display name may differ from the API's model ID.
+* The OpenAI-compatible `MODEL_ENDPOINT`, from the model details or MaaS connection information. Keep the routing path and supplied `/v1` suffix; omit `/chat/completions` and do not use `localhost`.
+* The `MODEL_API_KEY` issued for that endpoint, without the `Bearer ` prefix. Input is hidden. Press Enter to leave it empty only if the endpoint allows unauthenticated requests.
+
+The script retrieves *EvalHub URL, your current OpenShift token, and MLflow tracking URI together*, then prints all seven `.env` variables. It reads cluster resources and does not change them.
+
+This lab uses an EvalHub resource/service named `evalhub` in your assigned namespace, and a shared HTTPS MLflow service named `mlflow` in `redhat-ods-applications` on port `8443`. If your instructor uses a shared EvalHub or another MLflow namespace, update `EVALHUB_NAMESPACE` or `MLFLOW_NAMESPACE` in the block before running it.
+
+[source,bash,role="execute"]
+----
+bash <<'SETUP'
+set -euo pipefail
+
+fail() {
+    printf 'ERROR: %s\n' "$1" >&2
+    exit 1
+}
+
+# Web Terminal is already authenticated as your OpenShift user.
+EVALHUB_AUTH_TOKEN=$(oc whoami -t)
+[[ -n "$EVALHUB_AUTH_TOKEN" ]] || fail "No OpenShift token is available. Reopen Web Terminal after signing in."
+
+read -r -p "Assigned namespace (user1, user2, user3, ...): " NAMESPACE </dev/tty
+read -r -p "Served model ID: " MODEL_NAME </dev/tty
+read -r -p "Model API base URL (including /v1 when required): " MODEL_ENDPOINT </dev/tty
+read -r -s -p "Model API key (Enter only for an unauthenticated endpoint): " MODEL_API_KEY </dev/tty
+printf '\n' >/dev/tty
+
+[[ -n "$NAMESPACE" && -n "$MODEL_NAME" && -n "$MODEL_ENDPOINT" ]] \
+    || fail "Namespace, model ID, and model endpoint are required."
+
+EVALHUB_NAMESPACE="$NAMESPACE"
+MLFLOW_NAMESPACE=redhat-ods-applications
+
+# Prefer the named EvalHub route, preserving its scheme and base path.
+EVALHUB_URL=$(oc get route evalhub -n "$EVALHUB_NAMESPACE" \
+    -o go-template='{{if eq .spec.to.name "evalhub"}}{{if .spec.tls}}https{{else}}http{{end}}://{{.spec.host}}{{with .spec.path}}{{.}}{{end}}{{end}}' \
+    2>/dev/null || true)
+
+# A Workbench in the same cluster can also use the internal HTTPS service.
+if [[ -z "$EVALHUB_URL" ]]; then
+    EVALHUB_PORT=$(oc get svc evalhub -n "$EVALHUB_NAMESPACE" \
+        -o jsonpath='{.spec.ports[?(@.port==8443)].port}')
+    [[ -n "$EVALHUB_PORT" ]] || fail "The expected EvalHub HTTPS service port 8443 was not found."
+    EVALHUB_URL="https://evalhub.${EVALHUB_NAMESPACE}.svc.cluster.local:${EVALHUB_PORT}"
+fi
+
+# Read the tracking URI explicitly configured on EvalHub, when present.
+MLFLOW_TRACKING_URI=$(oc get evalhub evalhub -n "$EVALHUB_NAMESPACE" \
+    -o jsonpath='{.spec.env[?(@.name=="MLFLOW_TRACKING_URI")].value}' \
+    2>/dev/null || true)
+
+# Otherwise, verify and use this lab's shared HTTPS MLflow service.
+if [[ -z "$MLFLOW_TRACKING_URI" ]]; then
+    MLFLOW_PORT=$(oc get svc mlflow -n "$MLFLOW_NAMESPACE" \
+        -o jsonpath='{.spec.ports[?(@.port==8443)].port}')
+    [[ -n "$MLFLOW_PORT" ]] || fail "The expected MLflow HTTPS service port 8443 was not found."
+    MLFLOW_TRACKING_URI="https://mlflow.${MLFLOW_NAMESPACE}.svc:${MLFLOW_PORT}"
+fi
+
+# Expand a short MLflow service hostname relative to EvalHub's namespace.
+case "$MLFLOW_TRACKING_URI" in
+    http://mlflow:*|https://mlflow:*)
+        MLFLOW_SCHEME="${MLFLOW_TRACKING_URI%%://*}"
+        MLFLOW_ADDRESS="${MLFLOW_TRACKING_URI#*://mlflow:}"
+        MLFLOW_TRACKING_URI="${MLFLOW_SCHEME}://mlflow.${EVALHUB_NAMESPACE}.svc:${MLFLOW_ADDRESS}"
+        ;;
+esac
+
+# Single quotes preserve spaces and # characters when python-dotenv reads values.
+print_env() {
+    local value="$2"
+    local escaped_backslash='\\'
+    local escaped_quote="\\'"
+    value="${value//\\/$escaped_backslash}"
+    value="${value//\'/$escaped_quote}"
+    printf "%s='%s'\n" "$1" "$value"
+}
+
+printf '\n# BEGIN .env - copy from NAMESPACE through MLFLOW_TRACKING_URI\n'
+for key in NAMESPACE MODEL_NAME MODEL_ENDPOINT MODEL_API_KEY \
+    EVALHUB_URL EVALHUB_AUTH_TOKEN MLFLOW_TRACKING_URI; do
+    print_env "$key" "${!key}"
+done
+printf '# END .env\n'
+SETUP
+----
+
+The output contains your assigned namespace, three model settings, and three discovered connection settings, with literal values ready to paste. For example:
+
+[source,dotenv]
+----
+NAMESPACE='user1'
+MODEL_NAME='your-served-model-id'
+MODEL_ENDPOINT='https://your-model-endpoint.example.com/v1'
+MODEL_API_KEY='your-model-api-key'
+EVALHUB_URL='https://evalhub-user1.apps.your-cluster.example.com'
+EVALHUB_AUTH_TOKEN='your-current-openshift-token'
+MLFLOW_TRACKING_URI='https://mlflow.redhat-ods-applications.svc:8443'
+----
+
+Use your actual generated output. EvalHub may use an internal service URL instead of a route; both are valid when reachable from the Workbench. The EvalHub URL must not end in `/api/v1`. Keep any path such as `/mlflow` in the discovered MLflow URI.
+
+If the script reports `Forbidden`, a missing resource, or a missing service port, ask your instructor to verify access and the deployment names. It stops before printing a complete `.env` block when a required lookup fails. If the token later expires or access returns HTTP `401`, rerun this same block in Web Terminal and replace the saved configuration. HTTP `403` can indicate insufficient tenant permissions.
+
+==== B. Workbench: Paste the Configuration Once
+
+Open your *Workbench terminal* and run:
 
 [source,sh,role="execute"]
 ----
 git clone https://github.com/hyogrin/rhoai-evalhub-lab.git
 cd rhoai-evalhub-lab
-cp sample.env .env
+cp -n workshop_sample.env .env
+python -m pip install -q -r requirements.txt
 ----
 
 // CAPTURE: workbench terminal after successful clone
 image::img-setup-workbench-clone.png[Workbench terminal after cloning rhoai-evalhub-lab]
 
-Edit `.env` with values from your instructor (or cluster owner). Typical keys:
+The lab already includes {evalhub-lab-repo}/blob/main/workshop_sample.env[`workshop_sample.env`] in its root directory. `cp -n` preserves an existing `.env`.
 
-[cols="1,2",options="header"]
-|===
-| Variable | Purpose
+In JupyterLab, enable *View -> Show Hidden Files* and open `rhoai-evalhub-lab/.env`. Replace its contents with the *seven generated assignment lines* from Web Terminal, then save. This applies the namespace, model, EvalHub, and MLflow settings together. The same file is used by Modules 2-5.
 
-| `NAMESPACE`
-| Data science project / tenant used by EvalHub jobs
+[IMPORTANT]
+====
+Copy the printed values, including the actual `EVALHUB_AUTH_TOKEN`. The notebooks read `.env` with `python-dotenv`; they do not execute shell commands in it. You do not need to run `source .env` or manually run `oc` in the Workbench terminal for this configuration step.
 
-| `MODEL_NAME` / `MODEL_ENDPOINT` / `MODEL_API_KEY`
-| Target LLM (MaaS or cluster-deployed)
+The generated block contains credentials. Keep it in `.env` and do not commit it to Git.
+====
 
-| `EVALHUB_URL` / `EVALHUB_AUTH_TOKEN`
-| EvalHub service URL and bearer token (`oc whoami -t` often works)
+The instructor must provision EvalHub, the project's MLflow workspace and artifact storage, and the required notebook identity permissions. The current lab notebooks can still invoke `oc` internally for cluster setup and model Secret management; copying `EVALHUB_AUTH_TOKEN` authenticates SDK requests and does not establish a Workbench CLI login. When a model key is set, the notebook identity needs permission to manage the `model-api-key` Secret in your assigned namespace.
 
-| `MLFLOW_TRACKING_URI`
-| MLflow tracking server used by EvalHub experiments
-|===
+==== C. Workbench: Load and Verify
+
+Open `0_setup/1_eval_hub_setup.ipynb` and run *Step 0: Load Configuration*, then continue through the participant cells as directed by your instructor. Keep notebooks in their original subdirectories: the configuration cell reads `../.env`.
+
+Check that the output shows your assigned namespace (`user1`, `user2`, `user3`, ...), model endpoint, EvalHub URL, and MLflow URI. The token is supplied explicitly by `.env`.
+
+After replacing `.env`, restart the kernel of each open benchmark notebook and rerun its configuration cell so previously loaded values are replaced.
+
+[TIP]
+====
+The workshop template covers the seven connection variables for Modules 2-5. `LIMIT` defaults to `5` in the benchmark notebooks; increase it only when instructed. Pipeline server, S3, and Slack settings are not needed in the participant configuration. Module 6 requires additional guardrails settings.
+====
 
 // CAPTURE: notebook Step 0 config printout (redact secrets)
 image::img-setup-env-configured.png[Notebook configuration output after loading .env]
 
 === Step 2.2: What the Notebook Configures
 
-The setup notebook installs dependencies, resolves auth, and checks that EvalHub responds. Conceptually:
+The participant cells load the saved configuration and check that EvalHub responds. The example below requires the namespace and token collected in Web Terminal:
 
 [source,python,subs=none]
 ----
@@ -74,7 +197,17 @@ load_dotenv(dotenv_path="../.env", override=True)
 
 EVALHUB_URL = os.getenv("EVALHUB_URL")
 EVALHUB_AUTH_TOKEN = os.getenv("EVALHUB_AUTH_TOKEN")
-NAMESPACE = os.getenv("NAMESPACE", "demo")
+NAMESPACE = os.getenv("NAMESPACE", "").strip()
+
+if not NAMESPACE:
+    raise ValueError(
+        "Set NAMESPACE in ../.env to your assigned namespace (user1, user2, user3, ...)."
+    )
+
+if not EVALHUB_URL or not EVALHUB_AUTH_TOKEN:
+    raise ValueError(
+        "Paste the complete configuration generated in Web Terminal into ../.env."
+    )
 
 client = SyncEvalHubClient(
     base_url=EVALHUB_URL,
