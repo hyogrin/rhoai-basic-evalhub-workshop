@@ -132,5 +132,5 @@ Before starting, confirm the following are ready:
 
 [TIP]
 ====
-For scripted cluster preparation (MLflow, operators, dashboard features), see the https://github.com/jingggg-wenn/rhoai-sno-setup-guide[RHOAI 3.5 SNO Setup Guide].
+For a scripted environment setup (MaaS gateway, operators, dashboard features, DevSpaces, and more), see the https://github.com/jingggg-wenn/rhoai-field-source-setup-guide[RHOAI 3.5 Field Source Setup Guide,window=_blank] repo. To enable all features, run the https://github.com/jingggg-wenn/rhoai-field-source-setup-guide/blob/main/scripts/field-source-enable-all-features-35.sh[field-source-enable-all-features-35.sh,window=_blank] script. For the quick workshop setup, follow the https://github.com/jingggg-wenn/rhoai-field-source-setup-guide/blob/main/scripts/WORKSHOP-SETUP.md[Workshop Setup Guide,window=_blank].
 ====
