@@ -179,7 +179,29 @@ verify_tenant() {
             failed=1
         fi
     }
-    check create experiments.mlflow.kubeflow.org
+    # MLflow experiments are not a served Kubernetes resource, so `oc auth can-i`
+    # always answers "no". Ask the API server directly with a SubjectAccessReview.
+    local mlflow_allowed
+    mlflow_allowed=$(oc create -o jsonpath='{.status.allowed}' -f - 2>/dev/null <<EOF || true
+apiVersion: authorization.k8s.io/v1
+kind: SubjectAccessReview
+spec:
+  user: ${svc}
+  groups: ["system:serviceaccounts", "system:serviceaccounts:${EVALHUB_NS}"]
+  resourceAttributes:
+    namespace: ${ns}
+    group: mlflow.kubeflow.org
+    resource: experiments
+    verb: create
+EOF
+)
+    if [[ "$mlflow_allowed" == "true" ]]; then
+        ok "  ${EVALHUB_SA} can create MLflow experiments"
+    else
+        warn "  ${EVALHUB_SA} cannot create MLflow experiments in ${ns}"
+        failed=1
+    fi
+
     check create jobs.batch
     check create configmaps
     check get secrets
