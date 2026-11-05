@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Enable one or more namespaces as EvalHub tenants.
+# Enable workshop namespaces as EvalHub tenants.
 #
 # The shared EvalHub service (in EVALHUB_NS) submits evaluation jobs and
 # creates MLflow experiments inside each participant's namespace. Without
@@ -9,13 +9,19 @@
 # Usage:
 #   ./setup-evalhub-tenant.sh user1                 # one namespace
 #   ./setup-evalhub-tenant.sh user1 user2 user3     # several namespaces
-#   ./setup-evalhub-tenant.sh                       # prompts for a namespace
+#   ./setup-evalhub-tenant.sh                       # discover Keycloak users (except admin)
 #
 #   # From Web Terminal, without cloning:
-#   curl -fsSL <raw-url>/scripts/setup-evalhub-tenant.sh | bash -s -- user1
+#   curl -fsSL <raw-url>/scripts/setup-evalhub-tenant.sh | bash
 #
 # Environment:
-#   EVALHUB_NS   Namespace where EvalHub runs (default: redhat-ods-applications)
+#   EVALHUB_NS           EvalHub namespace (default: redhat-ods-applications)
+#   WORKSHOP_USERS       Comma-separated namespaces; overrides Keycloak discovery
+#   KC_NAMESPACE         Keycloak namespace (default: keycloak)
+#   KC_REALM_IMPORT_NAME KeycloakRealmImport name (default: sso)
+#
+# Namespace arguments take precedence over WORKSHOP_USERS and Keycloak discovery.
+# Keycloak usernames must match the existing workshop project names.
 #
 # Safe to rerun: every resource is applied idempotently.
 # The caller needs permission to create Roles and RoleBindings that grant the
@@ -25,6 +31,8 @@ set -euo pipefail
 EVALHUB_NS="${EVALHUB_NS:-redhat-ods-applications}"
 EVALHUB_SA="evalhub-service"
 JOB_SA="evalhub-${EVALHUB_NS}-job"
+KC_NAMESPACE="${KC_NAMESPACE:-keycloak}"
+KC_REALM_IMPORT_NAME="${KC_REALM_IMPORT_NAME:-sso}"
 
 info()    { printf '[INFO] %s\n' "$1"; }
 ok()      { printf '[OK]   %s\n' "$1"; }
@@ -41,12 +49,18 @@ preflight() {
 setup_tenant() {
     local ns="$1"
 
-    [[ "$ns" != "$EVALHUB_NS" ]] || fail "Target namespace must be a user namespace, not ${EVALHUB_NS}."
-    oc get namespace "$ns" >/dev/null 2>&1 || fail "Namespace ${ns} does not exist."
+    if [[ ${#ns} -gt 63 || ! "$ns" =~ ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$ || "$ns" == "$EVALHUB_NS" ]]; then
+        warn "Invalid participant namespace: ${ns}. Use an existing workshop project name."
+        return 1
+    fi
+    if ! oc get namespace "$ns" >/dev/null 2>&1; then
+        warn "Namespace ${ns} is unavailable. Create the participant project before running this script."
+        return 1
+    fi
 
     info "Configuring EvalHub tenant RBAC in namespace '${ns}' (as $(oc whoami))..."
 
-    oc apply -f - >/dev/null <<EOF
+    oc apply -f - >/dev/null <<EOF || return 1
 # EvalHub service: create MLflow experiments in this namespace's workspace.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -229,13 +243,26 @@ main() {
     preflight
 
     local namespaces=("$@")
-    if [[ ${#namespaces[@]} -eq 0 ]]; then
-        local ns=""
-        if { exec 3<>/dev/tty; } 2>/dev/null; then
-            read -r -u 3 -p "Namespace to enable for EvalHub (user1, user2, ...): " ns
+    if [[ ${#namespaces[@]} -gt 0 ]]; then
+        info "Using namespace arguments: ${namespaces[*]}"
+    elif [[ -n "${WORKSHOP_USERS:-}" ]]; then
+        IFS=',' read -r -a namespaces <<< "$WORKSHOP_USERS"
+        [[ ${#namespaces[@]} -gt 0 ]] || fail "WORKSHOP_USERS contains no namespaces."
+        info "Using WORKSHOP_USERS: ${namespaces[*]}"
+    else
+        local kc_users username
+        info "Discovering users from KeycloakRealmImport '${KC_REALM_IMPORT_NAME}' in '${KC_NAMESPACE}'..."
+        if ! kc_users=$(oc get keycloakrealmimport "$KC_REALM_IMPORT_NAME" -n "$KC_NAMESPACE" \
+            -o jsonpath='{.spec.realm.users[*].username}'); then
+            fail "Cannot read Keycloak users. Check KC_NAMESPACE and KC_REALM_IMPORT_NAME, or provide namespace arguments or WORKSHOP_USERS."
         fi
-        [[ -n "$ns" ]] || fail "No namespace given. Usage: $0 <namespace> [namespace ...]"
-        namespaces=("$ns")
+        # Use the same username-to-project mapping as workshop provisioning.
+        for username in $kc_users; do
+            [[ "$username" == "admin" ]] && continue
+            namespaces+=("$username")
+        done
+        [[ ${#namespaces[@]} -gt 0 ]] || fail "No workshop users found in Keycloak (admin excluded). Provide namespace arguments or WORKSHOP_USERS."
+        info "Auto-discovered ${#namespaces[@]} workshop namespace(s): ${namespaces[*]}"
     fi
 
     local rc=0

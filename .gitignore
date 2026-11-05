@@ -224,4 +224,6 @@ __marimo__/
 node_modules/
 .DS_Store
 
-.DS_Store
+# Antora / showroom local preview output (CI builds ./docs as Pages artifact)
+www/
+.cache/antora/
