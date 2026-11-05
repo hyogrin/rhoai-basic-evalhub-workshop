@@ -3,5 +3,5 @@
 * xref:module-03-guidellm.adoc#guidellm[Module 3: GuideLLM Performance Benchmark]
 * xref:module-04-kmcq.adoc#kmcq[Module 4: Korean MCQ Accuracy Benchmark]
 * xref:module-05-unified.adoc#unified[Module 5: Unified Evaluation in One Experiment]
-* xref:module-06-guardrails.adoc#guardrails[Module 6: Guardrails Evaluation]
+* xref:module-06-guardrails.adoc#guardrails[Module 6: Guardrails Evaluation (Optional)]
 * xref:module-07-closing.adoc#closing[Closing and Resources]

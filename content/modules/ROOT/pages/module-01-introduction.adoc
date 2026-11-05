@@ -96,8 +96,8 @@ Module 6 (Guardrails) complements Hub-backed accuracy and performance jobs. Cont
 | Hands-on
 
 | 6
-| Guardrails Evaluation
-| Hands-on
+| Guardrails Evaluation (Optional)
+| Reference
 |===
 
 By the end, you will be able to:

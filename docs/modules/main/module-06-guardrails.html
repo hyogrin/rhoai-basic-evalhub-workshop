@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Guardrails Evaluation :: Basic EvalHub on Red Hat AI</title>
+    <title>Guardrails Evaluation (Optional) :: Basic EvalHub on Red Hat AI</title>
     <link rel="canonical" href="https://hyogrin.github.io/rhoai-basic-evalhub-workshop/modules/main/module-06-guardrails.html">
     <link rel="prev" href="module-05-unified.html#unified">
     <link rel="next" href="module-07-closing.html#closing">
@@ -62,7 +62,7 @@
     <a class="nav-link" href="module-05-unified.html#unified">Module 5: Unified Evaluation in One Experiment</a>
   </li>
   <li class="nav-item" data-depth="1">
-    <a class="nav-link" href="#guardrails">Module 6: Guardrails Evaluation</a>
+    <a class="nav-link" href="#guardrails">Module 6: Guardrails Evaluation (Optional)</a>
   </li>
   <li class="nav-item" data-depth="1">
     <a class="nav-link" href="module-07-closing.html#closing">Closing and Resources</a>
@@ -104,192 +104,15 @@
 <nav class="breadcrumbs" aria-label="breadcrumbs">
   <ul>
     <li><a href="index.html">Basic EvalHub on Red Hat AI</a></li>
-    <li><a href="#guardrails">Module 6: Guardrails Evaluation</a></li>
+    <li><a href="#guardrails">Module 6: Guardrails Evaluation (Optional)</a></li>
   </ul>
 </nav>
 </div>
   <div class="content">
 <article class="doc">
-<h1 class="page">Guardrails Evaluation</h1>
+<h1 class="page">Guardrails Evaluation (Optional)</h1>
 <div id="preamble">
 <div class="sectionbody">
-<div class="paragraph">
-<p>Accuracy and performance do not answer <strong>“is this safe to serve?”</strong> This module evaluates content-safety guardrails on Korean hate-speech data: compare regex-only filtering against model-backed safety, then measure precision, recall, and F1 on the K-MHaS dataset.</p>
-</div>
-</div>
-</div>
-<div class="sect1">
-<h2 id="_learning_objectives"><a class="anchor" href="#_learning_objectives"></a>Learning Objectives</h2>
-<div class="sectionbody">
-<div class="ulist">
-<ul>
-<li>
-<p>Contrast regex-only vs content-safety guardrail behaviour</p>
-</li>
-<li>
-<p>Run a structured evaluation notebook against K-MHaS samples</p>
-</li>
-<li>
-<p>Interpret confusion-matrix style metrics and HTML reports</p>
-</li>
-</ul>
-</div>
-</div>
-</div>
-<div class="sect1">
-<h2 id="_how_this_fits_the_workshop"><a class="anchor" href="#_how_this_fits_the_workshop"></a>How This Fits the Workshop</h2>
-<div class="sectionbody">
-<div class="paragraph">
-<p>EvalHub Modules 3–5 focus on Hub-orchestrated jobs and MLflow experiments. Guardrails evaluation uses the lab’s NeMo Guardrails / Kanana notebooks to add a <strong>safety gate</strong>. Together they form a practical release checklist: <strong>accurate</strong>, <strong>fast enough</strong>, and <strong>safe enough</strong>.</p>
-</div>
-</div>
-</div>
-<div class="sect1">
-<h2 id="_exercise_a_admin_setup_if_not_pre_provisioned"><a class="anchor" href="#_exercise_a_admin_setup_if_not_pre_provisioned"></a>Exercise A: Admin Setup (if not pre-provisioned)</h2>
-<div class="sectionbody">
-<div class="admonitionblock important">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-important" title="Important"></i>
-</td>
-<td class="content">
-<div class="paragraph">
-<p>If your instructor already deployed guardrail configs, skip to Exercise B.</p>
-</div>
-<div class="paragraph">
-<p><strong>Workbench path::</strong>
-<code>rhoai-evalhub-lab/5_eval_guardrail/1_guardrail_setup.ipynb</code></p>
-</div>
-<div class="paragraph">
-<p><strong>GitHub::</strong>
-<a href="https://github.com/hyogrin/rhoai-evalhub-lab/blob/main/5_eval_guardrail/1_guardrail_setup.ipynb" class="bare">https://github.com/hyogrin/rhoai-evalhub-lab/blob/main/5_eval_guardrail/1_guardrail_setup.ipynb</a></p>
-</div>
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>Run all cells to deploy regex-only and content-safety configurations.</p>
-</div>
-</div>
-</div>
-<div class="sect1">
-<h2 id="_exercise_b_interactive_guardrail_test"><a class="anchor" href="#_exercise_b_interactive_guardrail_test"></a>Exercise B: Interactive Guardrail Test</h2>
-<div class="sectionbody">
-<div class="admonitionblock important">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-important" title="Important"></i>
-</td>
-<td class="content">
-<div class="paragraph">
-<p><strong>Workbench path::</strong>
-<code>rhoai-evalhub-lab/5_eval_guardrail/2_guardrail_test.ipynb</code></p>
-</div>
-<div class="paragraph">
-<p><strong>GitHub::</strong>
-<a href="https://github.com/hyogrin/rhoai-evalhub-lab/blob/main/5_eval_guardrail/2_guardrail_test.ipynb" class="bare">https://github.com/hyogrin/rhoai-evalhub-lab/blob/main/5_eval_guardrail/2_guardrail_test.ipynb</a></p>
-</div>
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>Run all cells. You should observe that regex-only configs catch structured patterns (for example English PII-style rules) but <strong>miss</strong> Korean hate speech that a content-safety model can block.</p>
-</div>
-<div class="imageblock">
-<div class="content">
-<img src="_images/img-guardrail-regex-vs-safety.png" alt="Regex-only versus content-safety guardrail test results">
-</div>
-</div>
-</div>
-</div>
-<div class="sect1">
-<h2 id="_exercise_c_dataset_evaluation"><a class="anchor" href="#_exercise_c_dataset_evaluation"></a>Exercise C: Dataset Evaluation</h2>
-<div class="sectionbody">
-<div class="paragraph">
-<p>Pick <strong>one</strong> evaluation notebook for class time (your instructor may specify which model is deployed):</p>
-</div>
-<table class="tableblock frame-all grid-all stretch">
-<colgroup>
-<col style="width: 33.3333%;">
-<col style="width: 66.6667%;">
-</colgroup>
-<thead>
-<tr>
-<th class="tableblock halign-left valign-top">Notebook</th>
-<th class="tableblock halign-left valign-top">Focus</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>5_eval_guardrail/3_evaluate_guardrail_nemo.ipynb</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">NeMo Guardrails + Nemotron Safety Guard</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>5_eval_guardrail/3_evaluate_guardrail_kanana.ipynb</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Kanana Safeguard 8B</p></td>
-</tr>
-</tbody>
-</table>
-<div class="admonitionblock important">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-important" title="Important"></i>
-</td>
-<td class="content">
-<div class="paragraph">
-<p>Open the chosen notebook and <strong>run all cells</strong> end-to-end.</p>
-</div>
-<div class="paragraph">
-<p><strong>GitHub (Nemo)::</strong>
-<a href="https://github.com/hyogrin/rhoai-evalhub-lab/blob/main/5_eval_guardrail/3_evaluate_guardrail_nemo.ipynb" class="bare">https://github.com/hyogrin/rhoai-evalhub-lab/blob/main/5_eval_guardrail/3_evaluate_guardrail_nemo.ipynb</a></p>
-</div>
-<div class="paragraph">
-<p><strong>GitHub (Kanana)::</strong>
-<a href="https://github.com/hyogrin/rhoai-evalhub-lab/blob/main/5_eval_guardrail/3_evaluate_guardrail_kanana.ipynb" class="bare">https://github.com/hyogrin/rhoai-evalhub-lab/blob/main/5_eval_guardrail/3_evaluate_guardrail_kanana.ipynb</a></p>
-</div>
-</td>
-</tr>
-</table>
-</div>
-</div>
-</div>
-<div class="sect1">
-<h2 id="_key_concept_safety_metrics_beyond_blocked_or_not"><a class="anchor" href="#_key_concept_safety_metrics_beyond_blocked_or_not"></a>Key Concept: Safety Metrics Beyond “Blocked or Not”</h2>
-<div class="sectionbody">
-<div class="paragraph">
-<p>The evaluation notebooks compute classification metrics on labeled hate vs not-hate samples. Conceptually you care about:</p>
-</div>
-<table class="tableblock frame-all grid-all stretch">
-<colgroup>
-<col style="width: 33.3333%;">
-<col style="width: 66.6667%;">
-</colgroup>
-<thead>
-<tr>
-<th class="tableblock halign-left valign-top">Metric</th>
-<th class="tableblock halign-left valign-top">Interpretation</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Precision</strong></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Of blocked items, how many were truly harmful (lower false positives)</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Recall</strong></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Of harmful items, how many were blocked (lower false negatives)</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>F1 / Accuracy</strong></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Overall balance for the operating point you chose</p></td>
-</tr>
-</tbody>
-</table>
 <div class="admonitionblock note">
 <table>
 <tr>
@@ -298,7 +121,10 @@
 </td>
 <td class="content">
 <div class="paragraph">
-<p>Higher recall usually means fewer missed hate-speech cases but can increase over-blocking (false positives). Product policy decides which error type is more expensive.</p>
+<p>This module is an <strong>optional extension for participants who finish all required modules (Modules 1-5) early</strong>. Review the reference notebooks and example reports below if you have time and want to explore content safety. You can complete the workshop without running these notebooks.</p>
+</div>
+<div class="paragraph">
+<p>The NeMo Guardrails evaluation with Kanana Safeguard or Nemotron Safety Guard requires additional model deployments and endpoint configuration. These steps are outside the workshop exercises; the notebooks are provided as references for further exploration.</p>
 </div>
 </td>
 </tr>
@@ -307,33 +133,173 @@
 </div>
 </div>
 <div class="sect1">
-<h2 id="_verify"><a class="anchor" href="#_verify"></a>Verify</h2>
+<h2 id="_what_you_can_explore"><a class="anchor" href="#_what_you_can_explore"></a>What You Can Explore</h2>
 <div class="sectionbody">
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>Confirm interactive tests show different outcomes for Korean hate prompts under regex-only vs content-safety configs.</p>
-</li>
-<li>
-<p>Open the HTML report generated by the evaluation notebook (path printed in the notebook output).</p>
-<div class="imageblock">
-<div class="content">
-<img src="_images/img-guardrail-report-overview.png" alt="Guardrail evaluation HTML report overview">
-</div>
-</div>
-</li>
-<li>
-<p>Record precision, recall, and F1 for the class discussion&#8201;&#8212;&#8201;optionally compare Nemo vs Kanana if both were run.</p>
-<div class="imageblock">
-<div class="content">
-<img src="_images/img-guardrail-confusion-matrix.png" alt="Guardrail evaluation confusion matrix">
-</div>
-</div>
-</li>
-</ol>
+<div class="paragraph">
+<p>Accuracy and performance do not answer <strong>“is this safe to serve?”</strong> The reference notebooks show how to evaluate content-safety guardrails on Korean hate-speech data using NeMo Guardrails with <strong>Kanana Safeguard 8B</strong> or <strong>Nemotron Safety Guard</strong>.</p>
 </div>
 <div class="paragraph">
-<p>Optional advanced notebook: <code>rhoai-evalhub-lab/5_eval_guardrail/4_evaluate_guardrail_advanced.ipynb</code></p>
+<p>You can use these notebooks to:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Compare regex-only filtering with model-backed content safety.</p>
+</li>
+<li>
+<p>Evaluate labeled K-MHaS samples and measure precision, recall, F1, and accuracy.</p>
+</li>
+<li>
+<p>Inspect false positives (safe messages blocked) and false negatives (harmful messages allowed).</p>
+</li>
+<li>
+<p>Compare category-level filtering results across safety models.</p>
+</li>
+<li>
+<p>Generate HTML reports and record evaluation metrics and artifacts in MLflow.</p>
+</li>
+<li>
+<p>Explore Korean prompt examples, category filtering, and layered guardrails in the advanced notebook.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_reference_notebooks"><a class="anchor" href="#_reference_notebooks"></a>Reference Notebooks</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The notebooks are in <code>rhoai-evalhub-lab/5_eval_guardrail/</code> in your Workbench. You can read them and review the example reports without deploying additional models.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://github.com/hyogrin/rhoai-evalhub-lab/blob/main/5_eval_guardrail/1_guardrail_setup.ipynb"><code>1_guardrail_setup.ipynb</code>&#8201;&#8212;&#8201;NeMo Guardrails configuration reference</a>: ConfigMaps for regex-only and model-backed content safety, registration with the <code>NemoGuardrails</code> resource, and connectivity checks.</p>
+</li>
+<li>
+<p><a href="https://github.com/hyogrin/rhoai-evalhub-lab/blob/main/5_eval_guardrail/2_guardrail_test.ipynb"><code>2_guardrail_test.ipynb</code>&#8201;&#8212;&#8201;interactive comparison</a>: Compare the responses from regex-only and content-safety configurations.</p>
+</li>
+<li>
+<p><a href="https://github.com/hyogrin/rhoai-evalhub-lab/blob/main/5_eval_guardrail/3_evaluate_guardrail_nemo.ipynb"><code>3_evaluate_guardrail_nemo.ipynb</code>&#8201;&#8212;&#8201;Nemotron Safety Guard evaluation</a>: Evaluate K-MHaS samples through NeMo Guardrails and generate metrics and an HTML report.</p>
+</li>
+<li>
+<p><a href="https://github.com/hyogrin/rhoai-evalhub-lab/blob/main/5_eval_guardrail/3_evaluate_guardrail_kanana.ipynb"><code>3_evaluate_guardrail_kanana.ipynb</code>&#8201;&#8212;&#8201;Kanana Safeguard evaluation</a>: Integrate Kanana with NeMo Guardrails using its prompt format and custom output parser, then evaluate Korean content safety.</p>
+</li>
+<li>
+<p><a href="https://github.com/hyogrin/rhoai-evalhub-lab/blob/main/5_eval_guardrail/4_evaluate_guardrail_advanced.ipynb"><code>4_evaluate_guardrail_advanced.ipynb</code>&#8201;&#8212;&#8201;further exploration</a>: Examine prompt changes, category filtering, layered guardrails, and fine-tuning approaches using existing evaluation results.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_if_you_want_to_run_the_notebooks_later"><a class="anchor" href="#_if_you_want_to_run_the_notebooks_later"></a>If You Want to Run the Notebooks Later</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Plan for <strong>additional GPU capacity</strong> to deploy the evaluation target LLM and your chosen guardrail model. You only need one safety model to explore a single evaluation path; comparing Kanana and Nemotron requires access to both models.</p>
+</div>
+<div class="paragraph">
+<p>Before executing the reference notebooks:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Deploy the LLM used as the evaluation target and a safety model: Kanana Safeguard 8B or Nemotron Safety Guard.</p>
+</li>
+<li>
+<p>Deploy the NeMo Guardrails service and configure it to use the target LLM and safety model endpoints.</p>
+</li>
+<li>
+<p>Configure the model names, endpoint URLs, authentication, and guardrails route required by your chosen notebooks. The seven connection variables from Module 2 alone are not sufficient for this extension.</p>
+</li>
+<li>
+<p>Arrange the cluster permissions needed to manage the guardrails configuration, and check model connectivity and MLflow access with your instructor or administrator.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Use the chosen notebook&#8217;s prerequisites and configuration cells as the reference for your environment. After the deployments and endpoint settings are ready, you can run the evaluation and generate reports like the examples below.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_example_report_outputs"><a class="anchor" href="#_example_report_outputs"></a>Example Report Outputs</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The following reports come from saved evaluations of <strong>2,000 K-MHaS samples</strong> in the companion lab. You can inspect them without running a notebook or adding GPUs. They illustrate the output format; results depend on the models, guardrail configuration, and dataset samples used.</p>
+</div>
+<div class="paragraph">
+<p>Each evaluation produces:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>A self-contained <strong>HTML report</strong> with summary metrics, charts, category breakdowns, and result analysis.</p>
+</li>
+<li>
+<p>A <strong>CSV file</strong> containing per-sample evaluation results.</p>
+</li>
+<li>
+<p>A <strong>confusion matrix and filter-rate chart</strong> to show correct decisions, over-blocking, and missed harmful content.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Generated files are saved under <code>results/guardrail/</code> in the lab repository. The notebooks print the output paths and include cells for logging metrics and artifacts to MLflow.</p>
+</div>
+<div class="sect2">
+<h3 id="_kanana_safeguard_example"><a class="anchor" href="#_kanana_safeguard_example"></a>Kanana Safeguard Example</h3>
+<div class="paragraph">
+<p><a href="_attachments/guardrail-kanana-example-report.html" class="xref attachment">Open the saved Kanana Safeguard HTML report</a>.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="_images/img-guardrail-kanana-example.png" alt="Kanana Safeguard example confusion matrix and filter-rate chart">
+</div>
+<div class="title">Figure 1. Kanana Safeguard: confusion matrix and filter rates from the saved 2,000-sample evaluation</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_nemotron_safety_guard_example"><a class="anchor" href="#_nemotron_safety_guard_example"></a>Nemotron Safety Guard Example</h3>
+<div class="paragraph">
+<p><a href="_attachments/guardrail-nemotron-example-report.html" class="xref attachment">Open the saved Nemotron Safety Guard HTML report</a>.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="_images/img-guardrail-nemotron-example.png" alt="Nemotron Safety Guard example confusion matrix and filter-rate chart">
+</div>
+<div class="title">Figure 2. Nemotron Safety Guard: confusion matrix and filter rates from the saved 2,000-sample evaluation</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_how_to_read_the_reports"><a class="anchor" href="#_how_to_read_the_reports"></a>How to Read the Reports</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Precision</strong>: Of the blocked messages, how many were actually harmful?</p>
+</li>
+<li>
+<p><strong>Recall</strong>: Of the harmful messages, how many were blocked?</p>
+</li>
+<li>
+<p><strong>F1</strong>: How well does the configuration balance precision and recall?</p>
+</li>
+<li>
+<p><strong>False positive rate</strong>: How often are safe messages blocked?</p>
+</li>
+<li>
+<p><strong>False negative rate</strong>: How often does harmful content pass through?</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Use the confusion matrix and category breakdown to identify where a configuration over-blocks or misses harmful content. Compare reports using the same dataset samples and evaluation settings before drawing conclusions about the models.</p>
+</div>
+<div class="paragraph">
+<p>When you are ready to finish, continue to <a href="module-07-closing.html#closing" class="xref page">Closing and Resources</a>.</p>
 </div>
 </div>
 </div>
