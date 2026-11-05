@@ -29,7 +29,7 @@ Complete Step 2.1 below before opening the notebook. Then run *Step 0: Load Conf
 
 ==== A. Web Terminal: Generate the Complete `.env` Block
 
-Open the *Web Terminal* from the terminal icon in the OpenShift console. Run *all `oc` commands in this module in Web Terminal*. Use the Workbench terminal later only to clone the lab and install Python dependencies.
+Open the *Web Terminal* from the terminal icon in the OpenShift console. Run *all `oc` commands in this module in Web Terminal*. Use the Workbench terminal later to clone the lab, install Python dependencies, and create `.env`.
 
 Run the command below once in Web Terminal. It downloads and runs the workshop setup script, which prompts for four values:
 
@@ -73,7 +73,7 @@ Use your actual generated output. EvalHub may use an internal service URL instea
 
 If the script reports `Forbidden`, a missing resource, or a missing service port, ask your instructor to verify access and the deployment names. It stops before printing a complete `.env` block when a required lookup fails. If the token later expires or access returns HTTP `401`, rerun this same block in Web Terminal and replace the saved configuration. HTTP `403` can indicate insufficient tenant permissions.
 
-==== B. Workbench: Paste the Configuration Once
+==== B. Workbench: Create `.env` with `vi`
 
 Open your *Workbench terminal* and run:
 
@@ -81,16 +81,25 @@ Open your *Workbench terminal* and run:
 ----
 git clone https://github.com/hyogrin/rhoai-evalhub-lab.git
 cd rhoai-evalhub-lab
-cp -n workshop_sample.env .env
 python -m pip install -q -r requirements.txt
 ----
 
 // CAPTURE: workbench terminal after successful clone
 image::img-setup-workbench-clone.png[Workbench terminal after cloning rhoai-evalhub-lab]
 
-The lab already includes {evalhub-lab-repo}/blob/main/workshop_sample.env[`workshop_sample.env`] in its root directory. `cp -n` preserves an existing `.env`.
+In the same Workbench terminal, create `.env` in the `rhoai-evalhub-lab` directory:
 
-In JupyterLab, enable *View -> Show Hidden Files* and open `rhoai-evalhub-lab/.env`. Replace its contents with the *seven generated assignment lines* from Web Terminal, then save. This applies the namespace, model, EvalHub, and MLflow settings together. The same file is used by Modules 2-5.
+[source,sh,role="execute"]
+----
+vi .env
+----
+
+. If `.env` already contains text, press `Esc` and type `ggdG` to clear its contents.
+. Press `i` to enter insert mode.
+. Paste the *seven generated assignment lines* from Web Terminal.
+. Press `Esc`, type `:wq`, and press `Enter` to save the file and exit.
+
+This applies the namespace, model, EvalHub, and MLflow settings together. The same `.env` file is used by Modules 2-5.
 
 [IMPORTANT]
 ====
