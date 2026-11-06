@@ -71,8 +71,26 @@ This module uses two different terminals. Keep them apart, because each one runs
 
 A setup script asks you four questions about your model, discovers the EvalHub and MLflow connection details for you, and prints seven settings ready to copy. The script only reads cluster information; it does not change anything.
 
-Have these four values ready before you start. Your instructor provides them, or you can find them on the model's details page in the {productname-short} dashboard.
+. In the {ocp-short} console, click the *>_* icon in the top-right masthead. The Web Terminal opens at the bottom of the page.
++
+image::setup/img-open-web-terminal.png[OpenShift console masthead with the Web Terminal icon highlighted]
++
+The terminal starts in the `openshift-terminal` project. This is expected; it does not need to match your namespace.
 
+. Run the setup script:
++
+[source,bash,role="execute"]
+----
+(
+    set -o pipefail
+    curl -fsSL https://raw.githubusercontent.com/hyogrin/rhoai-basic-evalhub-workshop/refs/heads/main/scripts/setup-env.sh | bash
+)
+----
++
+You can review the https://github.com/hyogrin/rhoai-basic-evalhub-workshop/blob/main/scripts/setup-env.sh[setup script source,window=_blank] before running it.
++
+The script prompts for the following four values. Your instructor provides them, or you can find them on the model's details page in the {productname-short} dashboard.
++
 [cols="1,2,2",options="header"]
 |===
 | Prompt | What to enter | Example
@@ -94,24 +112,6 @@ Have these four values ready before you start. Your instructor provides them, or
 | `sk-oai-****************`
 |===
 
-. In the {ocp-short} console, click the *>_* icon in the top-right masthead. The Web Terminal opens at the bottom of the page.
-+
-image::setup/img-open-web-terminal.png[OpenShift console masthead with the Web Terminal icon highlighted]
-+
-The terminal starts in the `openshift-terminal` project. This is expected; it does not need to match your namespace.
-
-. Run the setup script:
-+
-[source,bash,role="execute"]
-----
-(
-    set -o pipefail
-    curl -fsSL https://raw.githubusercontent.com/hyogrin/rhoai-basic-evalhub-workshop/refs/heads/main/scripts/setup-env.sh | bash
-)
-----
-+
-You can review the https://github.com/hyogrin/rhoai-basic-evalhub-workshop/blob/main/scripts/setup-env.sh[setup script source,window=_blank] before running it.
-
 . Answer the four prompts, pressing *Enter* after each one. A completed session looks like this:
 +
 [source,text,subs="attributes+"]
@@ -126,6 +126,9 @@ NOTE: The API key is hidden while you type or paste it, so nothing appears on sc
 
 . Copy the output. The script prints a block between `# BEGIN .env` and `# END .env`:
 +
+.Completed prompts and the generated block in the Web Terminal
+image::setup/img-set-env-in-terminal.png[Web Terminal showing the four answered prompts and the generated .env block]
++
 [source,dotenv,subs="attributes+"]
 ----
 # BEGIN .env - copy from NAMESPACE through MLFLOW_TRACKING_URI
@@ -138,9 +141,6 @@ EVALHUB_AUTH_TOKEN='sha256~****************'
 MLFLOW_TRACKING_URI='https://mlflow.redhat-ods-applications.svc:8443/mlflow'
 # END .env
 ----
-+
-.Completed prompts and the generated block in the Web Terminal
-image::setup/img-set-env-in-terminal.png[Web Terminal showing the four answered prompts and the generated .env block]
 +
 Select the seven lines from `NAMESPACE=` through `MLFLOW_TRACKING_URI=` and copy them. You will paste them into your workbench in Step 2.4. Your values will differ from the example.
 
@@ -225,7 +225,16 @@ image::setup/img-workbench-install-requirements.png[Workbench terminal after ins
 
 The lab notebooks read their connection settings from a `.env` file at the root of the lab repository. The same file is used in Modules 2 to 5.
 
-. In the same workbench terminal, still inside `rhoai-evalhub-lab`, open a new `.env` file:
+. In the workbench terminal, make sure you are in the `rhoai-evalhub-lab` directory:
++
+[source,sh,role="execute"]
+----
+cd ~/rhoai-evalhub-lab && pwd
+----
++
+The output must end with `/rhoai-evalhub-lab`. If you see `No such file or directory`, the repository was not cloned; return to Step 2.3.
+
+. Open a new `.env` file:
 +
 [source,sh,role="execute"]
 ----
@@ -247,12 +256,14 @@ Some setup cells run `oc` commands inside the workbench, for example to build th
 
 . In the workbench terminal, log in with the OpenShift token already saved in `.env`:
 +
-[source,sh,role="execute",subs="attributes+"]
+[source,sh,role="execute"]
 ----
-oc login --server={openshift_api_url} \
+oc login --server=https://kubernetes.default.svc \
   --token="$(grep EVALHUB_AUTH_TOKEN .env | cut -d"'" -f2)" \
   --insecure-skip-tls-verify=true
 ----
++
+`\https://kubernetes.default.svc` is the cluster's API server address as seen from inside any pod, so the command works unchanged on every cluster.
 
 . Confirm that you are logged in as your user:
 +
@@ -261,7 +272,11 @@ oc login --server={openshift_api_url} \
 oc whoami
 ----
 +
-The output must be your user name, such as `user1`. If it shows `system:serviceaccount:...`, the login did not succeed; rerun the previous command.
+The output must be your user name, such as `user3`. If it shows `system:serviceaccount:...`, the login did not succeed; rerun the previous command.
++
+image::setup/img-workbench-oc-login.png[Workbench terminal showing a successful oc login and oc whoami returning the user name]
++
+The `Using insecure TLS client config` warning is expected and can be ignored.
 
 The notebooks share this login, so you do not need to restart the notebook kernel.
 
@@ -299,8 +314,8 @@ NOTE: The notebook uses its own step numbers (Step 0, Step 1, and so on). They a
 | `[OK] EvalHub reachable at ...`
 
 | *Step 2.5: Configure MLflow Workspace*
-| *Skip*
-| Do not run this cell. See the warning below.
+| Run
+| `S3 settings are missing or contain example values; keeping existing MLflow settings.` This is expected: the workshop uses MLflow's built-in artifact storage, so the cell makes no changes.
 
 | *Step 3: Initialize the SDK Client*
 | Run
@@ -312,11 +327,11 @@ NOTE: The notebook uses its own step numbers (Step 0, Step 1, and so on). They a
 
 | *Build the Korean MCQ Adapter Image*
 | Run
-| Build logs for 1 to 2 minutes, ending with `Image built successfully`
+| Build logs stream for a few minutes, ending with `Image built successfully`
 
 | *Register Korean MCQ Benchmarks*
 | Run
-| `Provider 'Korean MCQ Evaluation' registered` and a list of Korean benchmarks
+| `Provider 'Korean MCQ Evaluation' registered` (or `already registered` on a rerun) and a list of Korean benchmarks
 
 | *Step 5: Configure the Model Endpoint*
 | Run
@@ -335,30 +350,41 @@ NOTE: The notebook uses its own step numbers (Step 0, Step 1, and so on). They a
 | A multi-benchmark job, the available collections, and your job list
 |===
 
-[WARNING]
-====
-*Skip the notebook's Step 2.5: Configure MLflow Workspace.* That cell is intended for clusters that store MLflow artifacts in S3. In this workshop, MLflow stores artifacts itself and your MLflow workspace already exists. Because `oc` is now logged in as your user, running the cell would create an S3 configuration that points to storage that does not exist, which can break artifact logging for your namespace.
-====
+After *Step 4*, confirm that EvalHub returns its built-in providers: LM Evaluation Harness, Lighteval, GuideLLM, and Garak. The Korean MCQ provider is added later in the notebook.
 
-After *Step 0*, confirm that the configuration shows your own values:
+image::setup/img-evalhub-providers-list.png[Notebook Step 4 output listing the four built-in EvalHub providers and their benchmark counts]
 
-// CAPTURE: notebook Step 0 config printout (redact secrets)
-image::img-setup-env-configured.png[Notebook output after loading the configuration from .env]
+The *Build the Korean MCQ Adapter Image* cell takes a few minutes on the first run. It uploads the adapter source, pulls a base image, and builds the evaluator image in your namespace, so the cell output keeps growing with build logs. Wait until the cell finishes before running the next one.
 
-After *Step 4*, confirm that EvalHub returns its providers:
+.The build starts: the source is uploaded and the base image is pulled
+image::setup/img-buildconfig.png[Notebook cell output showing the Korean MCQ adapter build starting]
 
-// CAPTURE: successful providers.list() / connectivity cell output
-image::img-setup-evalhub-providers.png[EvalHub provider list confirming connectivity]
+The build is complete when the output ends with `Push successful` and `Image built successfully`:
 
-.Troubleshooting the setup notebook (click to expand)
-[%collapsible]
-====
-* *`NameError: name 'EVALHUB_AUTH_TOKEN' is not defined` (or another variable):* a cell ran before *Step 0*. Run *Step 0: Load Configuration* first. After any kernel restart, start again from Step 0.
-* *Step 0 shows `Namespace: demo` or `Model Name: glm-53-flash`:* these are the notebook's defaults, which means `.env` was not found. Confirm that `.env` is in `rhoai-evalhub-lab` and that the notebook is still in `0_setup`.
-* *`forbidden: User "system:serviceaccount:<namespace>:...` in a cell's output:* `oc` is not logged in as your user. Complete Step 2.5 of this module, then rerun the cell.
-* *Step 7 fails with `400 Bad Request`:* ask your instructor to check the response details. If they show `mlflow_request_failed` with `PERMISSION_DENIED` or `403`, the EvalHub service is missing access to your namespace. Your instructor should complete <<instructor-tenant-setup,the tenant preparation above>> or rerun `scripts/setup-evalhub-tenant.sh <namespace>` from the workshop repository, then you can rerun Step 7.
-* *HTTP `401` on any EvalHub call:* your OpenShift token has expired. Follow the note at the end of Step 2.5 of this module.
-====
+.The build finishes and the image is pushed to your namespace
+image::setup/img-buildconfig-complete.png[Notebook cell output ending with Push successful and Image built successfully]
+
+NOTE: If you rerun this cell later, it detects the existing image and skips the build.
+
+== View the Evaluation Results in MLflow
+
+After running through all the cells in the setup notebook, confirm that the smoke-test evaluation was recorded in MLflow:
+
+. In the {productname-short} dashboard, expand *Develop & train* in the left navigation and click *Experiments*.
+. Select your project (for example, `user3`) from the *Project* drop-down.
+. Search for `evaluation`. The `korean-llm-evaluation` experiment created by the notebook appears in the list.
++
+image::setup/img-experiments.png[Experiments page in the OpenShift AI dashboard showing the korean-llm-evaluation experiment]
+
+. Click `korean-llm-evaluation`, then click *Evaluation runs* in the left panel. The smoke-test run appears with a completed status and its accuracy metrics, such as `overall_accuracy`.
++
+image::setup/img-experiments-evaluation.png[Evaluation runs view of the korean-llm-evaluation experiment showing the completed run and its accuracy metrics]
+
+. To compare the metrics visually, click the chart icon above the run list. MLflow shows one chart per logged metric: `overall_accuracy`, `category_accuracy`, `supercategory_accuracy`, and `overall_score`. In this example, the model answered 85% of the 20 smoke-test questions correctly.
++
+image::setup/img-evaluation-graph-results.png[Chart view of the korean-llm-evaluation run showing bar charts for overall, category, and supercategory accuracy and the overall score]
+
+If the run is listed with its metrics, your workbench, EvalHub, MLflow, and model connections are all working.
 
 == Key Concept: One Client for Every Evaluation
 
@@ -381,17 +407,4 @@ print(f"Available providers: {len(providers)}")
 
 Each evaluation framework, such as GuideLLM or the Korean MCQ adapter, is a *provider* behind this client. In the next modules, you submit jobs to different providers with the same client and the same job request structure.
 
-== Verify
-
-Confirm the following before moving on:
-
-. In the notebook, *Steps 2 and 4* completed without HTTP `401` or `404` errors.
-. The smoke-test job from *Steps 7 to 9* reached the `completed` state.
-. The smoke-test experiment appears in MLflow:
-.. In the {productname-short} dashboard, expand *Develop & train* in the left navigation and click *Experiments*.
-.. Select your project (for example, `user1`) from the *Project* drop-down.
-.. Search for `evaluation`. Click the `korean-llm-evaluation` experiment to view its run and metrics.
-+
-image::setup/img-experiments.png[Experiments page in the OpenShift AI dashboard showing the korean-llm-evaluation experiment in the user1 project]
-
-Once your setup is verified, proceed to Module 3 to measure your model's inference performance with GuideLLM.
+Proceed to Module 3 to measure your model's inference performance with GuideLLM.

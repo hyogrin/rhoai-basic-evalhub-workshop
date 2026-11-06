@@ -6,9 +6,6 @@ Replace each **placeholder** PNG in this folder with a real capture using the **
 |------|--------|-----------------|
 | `img-evalhub-architecture.png` | 01 Intro | Diagram or UI showing EvalHub orchestrating providers → MLflow |
 | `img-eval-dimensions.png` | 01 Intro | Optional visual for performance / accuracy / safety dimensions |
-| `img-setup-env-configured.png` | 02 Setup | Notebook Step 0 printout (`NAMESPACE`, `EVALHUB_URL`, model vars) |
-| `img-setup-evalhub-providers.png` | 02 Setup | Successful `providers.list()` / connectivity output |
-| `img-setup-mlflow-experiments.png` | 02 Setup | RHOAI Dashboard → MLflow **Experiments** list |
 | `img-guidellm-notebook-job.png` | 03 GuideLLM | Notebook: GuideLLM job id + completed state |
 | `img-guidellm-mlflow-experiment.png` | 03 GuideLLM | MLflow: select `guidellm-*` experiment |
 | `img-guidellm-mlflow-metrics.png` | 03 GuideLLM | MLflow run metrics (TTFT / throughput / latency) |
