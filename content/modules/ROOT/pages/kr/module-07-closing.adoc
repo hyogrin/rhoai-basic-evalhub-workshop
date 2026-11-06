@@ -1,0 +1,77 @@
+:imagesdir: ../../assets/images
+
+[#closing-kr]
+= 마무리 및 참고 자료
+
+축하합니다. *Basic EvalHub on Red Hat AI* 워크숍을 완료했습니다.
+
+== 완료한 내용
+
+[cols="1,3",options="header"]
+|===
+| 모듈 | 수행한 작업
+
+| 1 -- 소개
+| LLM의 확률적 특성과 평가 중심 게이트의 필요성을 연결하고, EvalHub를 MLflow 실험 추적을 갖춘 통합 오케스트레이터로 이해했습니다
+
+| 2 -- 설정
+| 실습 리포지토리를 클론하고, `.env`를 구성하고, EvalHub + MLflow 연결을 확인했습니다
+
+| 3 -- GuideLLM
+| EvalHub를 통해 성능 작업을 제출하고 MLflow에서 지연 시간 및 처리량 메트릭을 확인했습니다
+
+| 4 -- 한국어 MCQ
+| 동일한 작업 API로 정확도 벤치마크를 실행하고 MLflow 메트릭과 아티팩트를 검토했습니다
+
+| 5 -- 통합 평가
+| 다중 벤치마크 정확도와 GuideLLM 성능을 하나의 MLflow 실험으로 통합했습니다
+
+| 6 -- 가드레일
+| 정규식 방식과 콘텐츠 안전성 방식의 동작을 비교하고 한국어 혐오 표현 데이터로 안전성 메트릭을 측정했습니다
+|===
+
+== 핵심 요약
+
+* *확률적 모델에는 게이트가 필요합니다* -- 데모와 HTTP 성공 코드는 품질 신호가 아닙니다.
+* *EvalHub는 평가 도구의 분산을 줄입니다* -- GuideLLM과 한국어 MCQ가 개별 도구 체인 대신 하나의 SDK 작업 형식을 공유합니다.
+* *MLflow는 공유 실험 기록입니다* -- 복합 평가는 실행(run)을 시간이 지나도 비교할 수 있을 때 유용합니다.
+* *안전성은 세 번째 차원입니다* -- 가드레일 평가는 운영 준비를 위해 정확도와 성능을 보완합니다.
+
+[cols="1,2,2",options="header"]
+|===
+| 차원 | 답하는 질문 | 본 워크숍에서
+
+| 성능
+| 얼마나 빠릅니까? 처리량은 얼마나 됩니까?
+| EvalHub를 통한 GuideLLM → MLflow
+
+| 정확도
+| 답변이 얼마나 자주 정확합니까?
+| EvalHub를 통한 한국어 MCQ → MLflow
+
+| 안전성
+| 어떤 유해 콘텐츠가 차단되거나 누락됩니까?
+| 가드레일 노트북 → 메트릭 / HTML 보고서
+|===
+
+== 추가 참고 자료
+
+=== 실습 및 쇼룸
+
+* 실습 노트북: {evalhub-lab-repo}
+* 본 쇼룸: https://github.com/hyogrin/rhoai-basic-evalhub-workshop
+
+=== {productname-long}
+
+* https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/{rhoai-version}[{productname-long} {rhoai-version} 문서]
+* https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/{rhoai-version}/html/serving_models[{productname-short}에서 모델 서빙]
+
+=== MLflow
+
+* https://mlflow.org/docs/latest/tracking.html[MLflow Tracking 가이드]
+* https://mlflow.org/docs/latest/llms/index.html[LLM을 위한 MLflow]
+
+=== 관련 워크숍
+
+* https://hyogrin.github.io/rhoai-basic-agentops-workshop/[Basic AgentOps on Red Hat AI] -- AI 애플리케이션을 위한 로그, 트레이스, GPU 메트릭
+* https://rhpds.github.io/agentops-in-prod-showroom/[AgentOps Observability with Red Hat AI] -- 고급 관측성(Observability) 쇼룸

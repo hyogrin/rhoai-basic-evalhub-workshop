@@ -54,10 +54,8 @@ podman run --rm --name antora -v $PWD:/antora:z -p 8080:8080 -i -t ghcr.io/julia
 
 ==== Screenshots
 
-Placeholder PNGs live in `content/modules/ROOT/assets/images/`.
-Replace a file with a real capture using the *exact same filename* -- the page picks it up on the next build/preview.
-
-Capture targets are listed in `content/modules/ROOT/assets/images/SCREENSHOTS.md`.
+Screenshots live in `content/modules/ROOT/assets/images/`, grouped by module (`setup/`, `guidellm/`, `kmcq/`, `unified/`). The English and Korean pages share the same files.
+Replace a file with a new capture using the *exact same filename* -- the page picks it up on the next build/preview.
 
 ==== Directory Structure
 
@@ -65,8 +63,7 @@ Capture targets are listed in `content/modules/ROOT/assets/images/SCREENSHOTS.md
 ----
 ./content/modules/ROOT/
   assets/
-    images/                                 # Screenshots (see SCREENSHOTS.md)
-    images/SCREENSHOTS.md                   # Capture checklist + exact filenames
+    images/                                 # Screenshots, grouped by module
   nav.adoc                                  # Navigation sidebar
   pages/
     index.adoc                              # Landing page
@@ -77,4 +74,5 @@ Capture targets are listed in `content/modules/ROOT/assets/images/SCREENSHOTS.md
     module-05-unified.adoc                  # Unified experiment in MLflow
     module-06-guardrails.adoc               # Content-safety evaluation
     module-07-closing.adoc                  # Summary and resources
+    kr/                                     # Korean versions of the module pages
 ----

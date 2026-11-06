@@ -18,9 +18,8 @@ chmod +x scripts/preview-local.sh
 
 ## Screenshots
 
-Module pages reference placeholder images under `content/modules/ROOT/assets/images/`.
-Capture the real UI, then overwrite the file with the **same name** listed in
-[`content/modules/ROOT/assets/images/SCREENSHOTS.md`](content/modules/ROOT/assets/images/SCREENSHOTS.md)
-— no AsciiDoc edits needed.
+Screenshots live under `content/modules/ROOT/assets/images/`, grouped by module
+(`setup/`, `guidellm/`, `kmcq/`, `unified/`). The English and Korean pages share the same files.
+To replace a screenshot, overwrite the file with the **same name** — no AsciiDoc edits needed.
 
 See [README.adoc](README.adoc) for more local development details.

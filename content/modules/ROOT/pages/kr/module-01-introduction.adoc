@@ -1,0 +1,136 @@
+:imagesdir: ../../assets/images
+
+[#introduction-kr]
+= 소개 -- 평가 중심 LLM 운영이 필요한 이유
+
+기존의 소프트웨어 테스트는 동일한 입력이 동일한 출력을 생성하는 *결정적(deterministic)* 동작을 전제로 합니다. 대규모 언어 모델(LLM)은 이 전제를 따르지 않습니다. 샘플링, temperature, 컨텍스트 변화로 인해 *동일한 프롬프트*라도 실행할 때마다 다른 답변이 생성될 수 있습니다. 몇 차례의 수동 데모만으로 LLM 기능을 출시하는 것은 충분하지 않습니다.
+
+본 워크숍은 {productname-short}에서 *평가 중심(evaluation-driven)* 접근 방식을 소개합니다. 품질 차원을 체계적으로 측정하고, *EvalHub*를 통해 여러 평가 도구를 오케스트레이션하며, 비교 가능한 결과를 *MLflow*에 기록합니다.
+
+== 확률적 모델에 평가 게이트가 필요한 이유
+
+`200 OK`를 반환하는 채팅 UI만으로는 답변이 정확한지, 충분히 빠른지, 안전한지 알 수 없습니다. 체계적인 평가 없이는 다음을 수행할 수 없습니다:
+
+* 프롬프트, 모델 또는 서빙 구성이 변경되었을 때 성능 저하를 재현합니다
+* 동일한 벤치마크로 후보 모델을 비교합니다
+* *정확도*, *지연 시간/처리량*, *콘텐츠 안전성*을 독립적인 출시 기준으로 구분합니다
+
+[cols="1,2",options="header"]
+|===
+| 과제 | 중요한 이유
+
+| *비결정적 출력*
+| 버그를 재현하기 어렵습니다. "데모에서는 동작했다"는 품질 신호가 아닙니다
+
+| *다차원 품질*
+| 모델이 정확도에서는 높은 점수를 받더라도 지연 시간이나 안전성 게이트를 통과하지 못할 수 있습니다
+
+| *평가 도구의 분산*
+| GuideLLM, lm-evaluation-harness, 사용자 정의 스크립트를 각각 실행하면 서로 비교할 수 없는 결과물이 생성됩니다
+
+| *공유 실험 기록의 부재*
+| 공통 MLflow 실험 기반이 없으면 모델과 구성 비교가 스프레드시트로 흩어집니다
+|===
+
+// CAPTURE: three quality gates visual (perf / accuracy / safety)
+image::img-eval-dimensions.png[세 가지 평가 차원: 성능, 정확도, 안전성]
+
+== EvalHub가 제공하는 기능
+
+*EvalHub*({rhoai-short} {rhoai-version}에서 GA)는 TrustyAI Operator가 관리하는 경량 REST API 및 Python SDK입니다. 각 평가 도구의 SDK를 개별적으로 연결하도록 요구하는 대신, 여러 백엔드에 걸쳐 LLM 평가를 오케스트레이션합니다.
+
+본 워크숍에서 중점을 두는 내용은 다음과 같습니다:
+
+* *복합 평가* -- 성능(GuideLLM), 한국어 MCQ 정확도, 콘텐츠 안전성 가드레일을 상호 보완적인 게이트로 활용합니다
+* *단일 실험 기반* -- EvalHub 작업이 파라미터, 메트릭, 아티팩트를 *MLflow*에 기록하므로 실행(run) 간 비교가 가능합니다
+
+[cols="1,2,2",options="header"]
+|===
+| EvalHub 미사용 시 | EvalHub 사용 시 | 워크숍 중점 사항
+
+| 평가 도구별로 별도의 CLI/SDK 사용
+| 단일 클라이언트: `SyncEvalHubClient` + `JobSubmissionRequest`
+| 여러 벤치마크에 동일한 제출 형식 사용
+
+| 임시 결과 폴더
+| 중앙 집중식 작업 API + MLflow 추적
+| 다중 벤치마크 및 통합 작업에 동일한 실험 사용
+
+| 인증 및 모델 구성의 재사용이 어려움
+| MaaS 또는 KServe를 대상으로 하는 공유 `ModelConfig` / `.env`
+| 재현 가능한 워크벤치 설정
+|===
+
+// CAPTURE: architecture diagram or console view of EvalHub + providers + MLflow
+image::img-evalhub-architecture.png[EvalHub가 평가 프로바이더를 오케스트레이션하고 결과를 MLflow에 기록하는 구조]
+
+[NOTE]
+====
+모듈 6(가드레일)은 EvalHub 기반의 정확도 및 성능 작업을 보완합니다. 콘텐츠 안전성 평가는 실습 리포지토리의 NeMo Guardrails / Kanana Safeguard 노트북을 사용하며, 나란히 비교할 수 있는 메트릭과 HTML 보고서를 생성합니다.
+====
+
+== 학습 내용
+
+[cols="1,3,1",options="header"]
+|===
+| 모듈 | 제목 | 유형
+
+| 1
+| 소개 -- 평가 중심 접근 방식이 필요한 이유
+| 개요
+
+| 2
+| EvalHub 및 MLflow 설정
+| 실습
+
+| 3
+| GuideLLM 성능 벤치마크
+| 실습
+
+| 4
+| 한국어 MCQ 정확도 벤치마크
+| 실습
+
+| 5
+| 단일 실험에서의 통합 평가
+| 실습
+
+| 6
+| 가드레일 평가 (선택 사항)
+| 참고
+|===
+
+본 워크숍을 완료하면 다음을 수행할 수 있습니다:
+
+* 확률적 LLM에 평가 게이트가 중요한 이유를 설명합니다
+* MLflow 추적과 함께 클러스터 엔드포인트를 대상으로 EvalHub SDK를 구성합니다
+* EvalHub를 통해 성능 및 정확도 작업을 제출하고 MLflow에서 결과를 확인합니다
+* 단일 MLflow 실험 이름으로 정확도와 성능을 통합한 실험을 실행합니다
+* 한국어 혐오 표현 데이터로 콘텐츠 안전성 가드레일을 평가하고 정밀도(Precision)와 재현율(Recall)의 상충 관계를 해석합니다
+
+== 실습 모듈 진행 방식
+
+각 실습 모듈은 동일한 패턴을 따릅니다:
+
+. *실습 노트북을 엽니다* (클론 후 워크벤치 경로 *및* GitHub 링크)
+. 노트북의 *모든 셀을 처음부터 끝까지 실행합니다* -- 실습 리포지토리가 기준 자료입니다
+. 쇼룸의 *핵심 코드를 읽고* EvalHub 및 평가의 핵심을 이해합니다
+. MLflow UI(가드레일의 경우 생성된 HTML 보고서)에서 *결과를 확인합니다*
+
+실습 노트북은 별도의 리포지토리에 있습니다: {evalhub-lab-repo}
+
+== 사전 요구 사항
+
+시작하기 전에 다음 사항이 준비되어 있는지 확인합니다:
+
+* {rhoai-short} {rhoai-version}이 설치된 실행 중인 {ocp} 클러스터
+* 사용 가능한 TrustyAI Operator, 배포된 EvalHub 및 MLflow (설정 노트북으로 확인할 수 있습니다)
+* 모델 엔드포인트 -- *MaaS*(URL + API 키) 또는 vLLM을 사용하는 *KServe* InferenceService
+* `oc` CLI 접근이 가능한 {productname-short} 워크벤치
+* 벤치마크나 모델에 필요한 경우 Hugging Face 토큰
+* 로그인 자격 증명 (강사가 제공하는 사용자 이름과 비밀번호)
+
+[TIP]
+====
+스크립트를 통한 환경 설정(MaaS 게이트웨이, Operator, 대시보드 기능, DevSpaces 등)은 https://github.com/jingggg-wenn/rhoai-field-source-setup-guide[RHOAI 3.5 Field Source Setup Guide,window=_blank] 리포지토리를 참조하십시오. 모든 기능을 활성화하려면 https://github.com/jingggg-wenn/rhoai-field-source-setup-guide/blob/main/scripts/field-source-enable-all-features-35.sh[field-source-enable-all-features-35.sh,window=_blank] 스크립트를 실행하십시오. 빠른 워크숍 환경 설정은 https://github.com/jingggg-wenn/rhoai-field-source-setup-guide/blob/main/scripts/WORKSHOP-SETUP_KR.md[워크숍 설정 가이드,window=_blank]를 따르십시오.
+====

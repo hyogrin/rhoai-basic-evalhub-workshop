@@ -7,6 +7,8 @@ Traditional software testing assumes *deterministic* behaviour: the same input p
 
 This workshop shows an *evaluation-driven* approach on {productname-short}: measure quality dimensions deliberately, orchestrate multiple evaluators through *EvalHub*, and record comparable results in *MLflow*.
 
+xref:kr/module-01-introduction.adoc#introduction-kr[한국어 버전은 여기를 클릭하세요 (Click here for the Korean version)]
+
 == Why Stochastic Models Need Evaluation Gates
 
 A chat UI that returns `200 OK` does not tell you whether the answer is correct, fast enough, or safe. Without systematic evaluation you cannot:

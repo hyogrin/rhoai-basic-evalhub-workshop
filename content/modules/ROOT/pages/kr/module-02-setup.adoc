@@ -1,0 +1,374 @@
+:imagesdir: ../../assets/images
+
+[#setup-kr]
+= EvalHub 및 MLflow 설정
+
+이 모듈에서는 워크벤치를 공유 EvalHub 및 MLflow 서비스와 평가할 모델에 연결합니다. {ocp-short} Web Terminal에서 연결 설정을 생성하고, 워크벤치의 실습 리포지토리에 저장한 다음, 설정 노트북을 실행하여 전체 과정이 정상적으로 동작하는지 확인합니다.
+
+이 모듈을 완료하면 다음을 갖추게 됩니다:
+
+* 모델, EvalHub, MLflow 연결 설정이 포함된 `.env` 파일
+* 워크벤치에 복제된 실습 리포지토리와 사용자 계정으로 로그인된 `oc`
+* 검증된 EvalHub 연결과 MLflow에 기록된 첫 번째 평가 실행(run)
+
+[NOTE]
+====
+강사가 EvalHub, MLflow, 모델을 이미 배포했으며, 네임스페이스에서 EvalHub 작업을 실행할 수 있도록 활성화했습니다. 이 모듈에서는 클러스터 서비스를 배포하거나 구성할 필요가 없습니다.
+====
+
+== 두 개의 터미널과 각각의 용도
+
+이 모듈에서는 서로 다른 두 개의 터미널을 사용합니다. 각 터미널은 서로 다른 위치에서 실행되므로 구분하여 사용해야 합니다:
+
+[cols="1,2,2",options="header"]
+|===
+| 터미널 | 여는 위치 | 용도
+
+| *Web Terminal*
+| {ocp-short} 콘솔, 오른쪽 상단 마스트헤드의 *>_* 아이콘
+| 단계 2.1: 연결 설정 생성
+
+| *워크벤치 터미널*
+| 워크벤치의 JupyterLab, *Launcher* > *Terminal*
+| 단계 2.3~2.5: 실습 리포지토리 복제, `.env` 생성, `oc` 로그인
+|===
+
+== 단계 2.1: 연결 설정 생성
+
+설정 스크립트는 모델에 대한 네 가지 질문을 하고, EvalHub 및 MLflow 연결 정보를 자동으로 찾은 다음, 복사할 수 있는 일곱 개의 설정을 출력합니다. 이 스크립트는 클러스터 정보를 읽기만 하며 어떤 것도 변경하지 않습니다.
+
+. {ocp-short} 콘솔에서 오른쪽 상단 마스트헤드의 *>_* 아이콘을 클릭합니다. 페이지 하단에 Web Terminal이 열립니다.
++
+image::setup/img-open-web-terminal.png[Web Terminal 아이콘이 강조 표시된 OpenShift 콘솔 마스트헤드]
++
+터미널은 `openshift-terminal` 프로젝트에서 시작됩니다. 이는 정상이며, 본인의 네임스페이스와 일치하지 않아도 됩니다.
+
+. 설정 스크립트를 실행합니다:
++
+[source,bash,role="execute"]
+----
+(
+    set -o pipefail
+    curl -fsSL https://raw.githubusercontent.com/hyogrin/rhoai-basic-evalhub-workshop/refs/heads/main/scripts/setup-env.sh | bash
+)
+----
++
+실행하기 전에 https://github.com/hyogrin/rhoai-basic-evalhub-workshop/blob/main/scripts/setup-env.sh[설정 스크립트 소스,window=_blank]를 검토할 수 있습니다.
++
+스크립트는 다음 네 가지 값을 입력하도록 요청합니다. 이 값은 강사가 제공하거나 {productname-short} 대시보드의 모델 상세 페이지에서 확인할 수 있습니다.
++
+[cols="1,2,2",options="header"]
+|===
+| 프롬프트 | 입력 내용 | 예시
+
+| *Namespace*
+| 할당된 사용자 네임스페이스
+| `user1`
+
+| *Model ID*
+| 표시 이름이 아닌 모델의 API ID
+| `redhataigemma-4-e4b-it`
+
+| *Model API base URL*
+| `/v1`로 끝나는 모델 엔드포인트
+| `\https://maas.{openshift_cluster_ingress_domain}/user1/redhataigemma-4-e4b-it/v1`
+
+| *Model API key*
+| 해당 엔드포인트에 대해 발급된 API 키
+| `sk-oai-****************`
+|===
+
+. 네 가지 프롬프트에 각각 답한 후 *Enter* 키를 누릅니다. 완료된 세션은 다음과 같습니다:
++
+[source,text,subs="attributes+"]
+----
+Assigned namespace (user1, user2, user3, ...): user1
+Served model ID: redhataigemma-4-e4b-it
+Model API base URL (including /v1 when required): https://maas.{openshift_cluster_ingress_domain}/user1/redhataigemma-4-e4b-it/v1
+Model API key (Enter only for an unauthenticated endpoint):
+----
++
+NOTE: API 키는 입력하거나 붙여 넣는 동안 화면에 표시되지 않습니다. 키를 한 번만 붙여 넣고 *Enter* 키를 누릅니다.
+
+. 출력 내용을 복사합니다. 스크립트는 `# BEGIN .env`와 `# END .env` 사이에 블록을 출력합니다:
++
+.Web Terminal에서 완료된 프롬프트와 생성된 블록
+image::setup/img-set-env-in-terminal.png[네 가지 프롬프트에 대한 응답과 생성된 .env 블록을 보여주는 Web Terminal]
++
+[source,dotenv,subs="attributes+"]
+----
+# BEGIN .env - copy from NAMESPACE through MLFLOW_TRACKING_URI
+NAMESPACE='user1'
+MODEL_NAME='redhataigemma-4-e4b-it'
+MODEL_ENDPOINT='https://maas.{openshift_cluster_ingress_domain}/user1/redhataigemma-4-e4b-it/v1'
+MODEL_API_KEY='sk-oai-****************'
+EVALHUB_URL='https://evalhub-redhat-ods-applications.{openshift_cluster_ingress_domain}'
+EVALHUB_AUTH_TOKEN='sha256~****************'
+MLFLOW_TRACKING_URI='https://mlflow.redhat-ods-applications.svc:8443/mlflow'
+# END .env
+----
++
+`NAMESPACE=`부터 `MLFLOW_TRACKING_URI=`까지 일곱 줄을 선택하여 복사합니다. 이 내용은 단계 2.4에서 워크벤치에 붙여 넣습니다. 실제 값은 예시와 다릅니다.
+
+WARNING: 이 줄에는 모델 API 키와 OpenShift 토큰이 포함되어 있습니다. 다른 사람과 공유하거나 Git에 커밋하지 마십시오.
+
+프롬프트에 답할 때 다음과 같은 일반적인 실수를 피하십시오:
+
+[cols="1,2,2",options="header"]
+|===
+| 프롬프트 | 올바른 예 | 잘못된 예
+
+| Namespace
+| `user1`
+| `openshift-terminal` 또는 `redhat-ods-applications`
+
+| Model ID
+| `redhataigemma-4-e4b-it`
+| `RedHatAI/gemma-4-E4B-it` (표시 이름)
+
+| Model API base URL
+| `.../redhataigemma-4-e4b-it/v1`
+| `.../v1/chat/completions` 또는 `localhost` URL
+
+| Model API key
+| `sk-oai-****************`
+| `Bearer sk-oai-****************`
+|===
+
+== 단계 2.2: 워크벤치 열기
+
+Web Terminal에서 실습 노트북이 실행되는 워크벤치로 전환합니다.
+
+이 쇼룸 상단의 *Workbench* 탭을 클릭합니다. 탭 안에서 JupyterLab이 열립니다. 메시지가 표시되면 워크숍 자격 증명으로 로그인하고 요청된 권한을 허용합니다.
+
+또는 {productname-short} 대시보드에서 워크벤치를 열 수 있습니다:
+
+. 새 브라우저 탭에서 {rhoai_dashboard_url}[{productname-short} 대시보드,window=_blank]를 엽니다.
+. 왼쪽 탐색 메뉴에서 *Projects*를 클릭한 다음, 할당된 프로젝트(예: `user1`)를 선택합니다.
+. *Workbenches* 탭을 클릭합니다. 워크벤치의 상태가 *Ready*로 표시되어야 합니다.
+. 워크벤치 이름 또는 옆의 열기 아이콘을 클릭합니다. 새 탭에서 JupyterLab이 열립니다.
++
+image::setup/img-navigate-to-workbench.png[워크벤치가 Ready 상태로 표시된 user1 프로젝트의 Workbenches 탭]
+
+TIP: 워크벤치가 로드되지 않으면 *Projects* > 본인의 프로젝트 > *Workbenches*에서 상태를 확인합니다. 상태가 *Stopped*로 표시되면 옆의 토글을 클릭하고 상태가 *Ready*가 될 때까지 기다립니다.
+
+== 단계 2.3: 실습 리포지토리 복제 및 의존성 설치
+
+. JupyterLab *Launcher*에서 *Other* 아래의 *Terminal* 타일을 클릭합니다. *File* > *New* > *Terminal*을 클릭해도 됩니다.
++
+image::setup/img-open-workbench-terminal.png[Terminal 타일이 강조 표시된 JupyterLab Launcher]
+
+. 실습 리포지토리를 복제합니다:
++
+[source,sh,role="execute"]
+----
+git clone https://github.com/hyogrin/rhoai-evalhub-lab.git
+----
++
+TIP: JupyterLab Git 사이드바에서도 복제할 수 있습니다. 왼쪽의 *Git* 아이콘을 클릭하고 *Clone a Repository*를 클릭한 다음 `\https://github.com/hyogrin/rhoai-evalhub-lab.git`을 붙여 넣습니다.
++
+image::setup/img-workbench-clone-repo.png[Clone a Repository 버튼이 강조 표시된 JupyterLab Git 사이드바]
+
+. 복제된 디렉터리로 이동합니다:
++
+[source,sh,role="execute"]
+----
+cd rhoai-evalhub-lab
+----
+
+. Python 의존성을 설치합니다:
++
+[source,sh,role="execute"]
+----
+python -m pip install -q -r requirements.txt
+----
++
+`-q` (quiet) 플래그는 진행 상황 출력을 숨깁니다. 오류 메시지 없이 프롬프트가 다시 표시되면 설치가 완료된 것입니다.
++
+image::setup/img-workbench-install-requirements.png[실습 요구 사항 설치 후의 워크벤치 터미널]
+
+== 단계 2.4: `.env` 파일 생성
+
+실습 노트북은 실습 리포지토리 최상위의 `.env` 파일에서 연결 설정을 읽습니다. 동일한 파일이 모듈 2~5에서 사용됩니다.
+
+. 워크벤치 터미널에서 `rhoai-evalhub-lab` 디렉터리에 있는지 확인합니다:
++
+[source,sh,role="execute"]
+----
+cd ~/rhoai-evalhub-lab && pwd
+----
++
+출력은 `/rhoai-evalhub-lab`로 끝나야 합니다. `No such file or directory`가 표시되면 리포지토리가 복제되지 않은 것이므로 단계 2.3으로 돌아갑니다.
+
+. 새 `.env` 파일을 엽니다:
++
+[source,sh,role="execute"]
+----
+vi .env
+----
+
+. 파일에 이미 내용이 있으면 `Esc` 키를 누르고 `ggdG`를 입력하여 내용을 지웁니다.
+. `i` 키를 눌러 입력 모드로 전환합니다.
+. 단계 2.1에서 복사한 일곱 줄을 붙여 넣습니다.
+. `Esc` 키를 누르고 `:wq`를 입력한 다음 *Enter* 키를 눌러 저장하고 종료합니다.
+
+노트북은 `python-dotenv`로 `.env`를 로드하므로 `source .env`를 실행할 필요가 없습니다.
+
+IMPORTANT: `.env`는 노트북 하위 디렉터리가 아닌 `rhoai-evalhub-lab` 디렉터리에 두어야 합니다. 각 노트북은 자신의 폴더를 기준으로 `../.env`를 로드합니다.
+
+== 단계 2.5: 워크벤치에서 OpenShift에 로그인
+
+일부 설정 셀은 워크벤치 내부에서 `oc` 명령을 실행합니다. 예를 들어 Korean MCQ 평가기 이미지를 빌드하거나 모델 API 키를 Secret으로 저장합니다. 기본적으로 워크벤치의 `oc`는 워크벤치 자체의 서비스 어카운트로 실행되며, 이 서비스 어카운트는 이러한 리소스를 생성할 수 없습니다. 해당 셀이 정상적으로 실행되도록 사용자 계정으로 로그인합니다.
+
+. 워크벤치 터미널에서 `.env`에 이미 저장된 OpenShift 토큰으로 로그인합니다:
++
+[source,sh,role="execute"]
+----
+oc login --server=https://kubernetes.default.svc \
+  --token="$(grep EVALHUB_AUTH_TOKEN .env | cut -d"'" -f2)" \
+  --insecure-skip-tls-verify=true
+----
++
+`\https://kubernetes.default.svc`는 모든 Pod 내부에서 접근할 수 있는 클러스터 API 서버 주소이므로, 이 명령은 어떤 클러스터에서도 변경 없이 동작합니다.
+
+. 사용자 계정으로 로그인되었는지 확인합니다:
++
+[source,sh,role="execute"]
+----
+oc whoami
+----
++
+출력은 `user3`과 같은 본인의 사용자 이름이어야 합니다. `system:serviceaccount:...`가 표시되면 로그인이 실패한 것이므로 이전 명령을 다시 실행합니다.
++
+image::setup/img-workbench-oc-login.png[oc login 성공과 사용자 이름을 반환하는 oc whoami를 보여주는 워크벤치 터미널]
++
+`Using insecure TLS client config` 경고는 예상된 동작이므로 무시해도 됩니다.
+
+노트북은 이 로그인 정보를 공유하므로 노트북 커널을 다시 시작할 필요가 없습니다.
+
+NOTE: OpenShift 토큰은 일정 시간(일반적으로 약 하루)이 지나면 만료됩니다. 이후 노트북 호출이 HTTP `401`을 반환하면 단계 2.1의 설정 스크립트를 다시 실행하고, `.env`의 내용을 교체한 다음, 이 단계를 반복하고 노트북 커널을 다시 시작합니다.
+
+== 단계 2.6: 설정 노트북 실행
+
+설정 노트북은 구성을 로드하고, EvalHub에 연결하고, Korean MCQ 평가기를 등록한 다음, 짧은 스모크 테스트 평가를 제출합니다.
+
+*노트북 경로:* `{evalhub-lab-clone}/0_setup/1_eval_hub_setup.ipynb` (https://github.com/hyogrin/rhoai-evalhub-lab/blob/main/0_setup/1_eval_hub_setup.ipynb[GitHub에서 보기,window=_blank])
+
+. JupyterLab 파일 브라우저에서 `rhoai-evalhub-lab` > `0_setup` > `1_eval_hub_setup.ipynb`를 엽니다.
+. 각 셀을 선택하고 *Shift+Enter*를 눌러 맨 위부터 한 번에 하나씩 셀을 실행합니다. 아래 표를 참조하여 각 결과를 확인합니다.
+
+NOTE: 노트북은 자체 단계 번호(Step 0, Step 1 등)를 사용합니다. 이 번호는 이 모듈의 단계 번호와 다릅니다.
+
+[cols="2,1,3",options="header"]
+|===
+| 노트북 셀 | 동작 | 예상 결과
+
+| *Step 0: Load Configuration*
+| 실행
+| 네임스페이스, 모델 이름, 모델 엔드포인트, 마스킹된 API 키(`***` 뒤에 마지막 네 글자), EvalHub URL, MLflow URI
+
+| `%pip install` 셀
+| 실행
+| 출력 없음. 의존성이 이미 설치되어 있습니다
+
+| *Step 1: Resolve Authentication Token*
+| 실행
+| `Using token from .env: sha256~...`
+
+| *Step 2: Verify EvalHub Connectivity*
+| 실행
+| `[OK] EvalHub reachable at ...`
+
+| *Step 2.5: Configure MLflow Workspace*
+| 실행
+| `S3 settings are missing or contain example values; keeping existing MLflow settings.` 이는 예상된 결과입니다. 워크숍은 MLflow의 기본 제공 아티팩트 스토리지를 사용하므로 이 셀은 아무것도 변경하지 않습니다.
+
+| *Step 3: Initialize the SDK Client*
+| 실행
+| `EvalHub client initialized`와 테넌트로 설정된 네임스페이스. TLS 검증이 비활성화되었다는 메시지는 예상된 동작입니다.
+
+| *Step 4: Explore Available Providers and Benchmarks* (셀 2개)
+| 실행
+| LM Evaluation Harness와 GuideLLM을 포함한 프로바이더 목록과 그 뒤의 벤치마크 목록
+
+| *Build the Korean MCQ Adapter Image*
+| 실행
+| 몇 분 동안 빌드 로그가 출력되고 `Image built successfully`로 끝납니다
+
+| *Register Korean MCQ Benchmarks*
+| 실행
+| `Provider 'Korean MCQ Evaluation' registered`(다시 실행하면 `already registered`)와 Korean 벤치마크 목록
+
+| *Step 5: Configure the Model Endpoint*
+| 실행
+| `Model auth secret 'model-api-key' ready`와 모델 URL 및 이름
+
+| *Step 6: Configure MLflow Experiment Tracking*
+| 실행
+| 실험 이름 `korean-llm-evaluation`과 해당 태그
+
+| *Steps 7 to 9: Submit, monitor, and view the smoke test*
+| 실행
+| 작업 ID, 몇 분 안에 pending에서 running, completed로 바뀌는 상태 변화, MLflow 실행 ID가 포함된 정확도 메트릭
+
+| *Steps 10 to 12*
+| 선택 사항
+| 다중 벤치마크 작업, 사용 가능한 컬렉션, 작업 목록
+|===
+
+*Step 4* 이후 EvalHub가 기본 제공 프로바이더인 LM Evaluation Harness, Lighteval, GuideLLM, Garak을 반환하는지 확인합니다. Korean MCQ 프로바이더는 노트북 후반부에서 추가됩니다.
+
+image::setup/img-evalhub-providers-list.png[네 개의 기본 제공 EvalHub 프로바이더와 벤치마크 수를 나열한 노트북 Step 4 출력]
+
+*Build the Korean MCQ Adapter Image* 셀은 처음 실행할 때 몇 분이 걸립니다. 이 셀은 어댑터 소스를 업로드하고, 기본 이미지를 가져온 다음, 네임스페이스에서 평가기 이미지를 빌드하므로 셀 출력에 빌드 로그가 계속 추가됩니다. 다음 셀을 실행하기 전에 이 셀이 완료될 때까지 기다립니다.
+
+.빌드 시작: 소스가 업로드되고 기본 이미지를 가져옵니다
+image::setup/img-buildconfig.png[Korean MCQ 어댑터 빌드가 시작되는 것을 보여주는 노트북 셀 출력]
+
+출력이 `Push successful`과 `Image built successfully`로 끝나면 빌드가 완료된 것입니다:
+
+.빌드가 완료되고 이미지가 네임스페이스에 푸시됩니다
+image::setup/img-buildconfig-complete.png[Push successful과 Image built successfully로 끝나는 노트북 셀 출력]
+
+NOTE: 나중에 이 셀을 다시 실행하면 기존 이미지를 감지하고 빌드를 건너뜁니다.
+
+== MLflow에서 평가 결과 확인
+
+설정 노트북의 모든 셀을 실행한 후, 스모크 테스트 평가가 MLflow에 기록되었는지 확인합니다:
+
+. {productname-short} 대시보드의 왼쪽 탐색 메뉴에서 *Develop & train*을 펼치고 *Experiments*를 클릭합니다.
+. *Project* 드롭다운에서 본인의 프로젝트(예: `user3`)를 선택합니다.
+. `evaluation`을 검색합니다. 노트북에서 생성한 `korean-llm-evaluation` 실험이 목록에 표시됩니다.
++
+image::setup/img-experiments.png[korean-llm-evaluation 실험을 보여주는 OpenShift AI 대시보드의 Experiments 페이지]
+
+. `korean-llm-evaluation`을 클릭한 다음 왼쪽 패널에서 *Evaluation runs*를 클릭합니다. 스모크 테스트 실행이 완료 상태 및 `overall_accuracy` 등의 정확도 메트릭과 함께 표시됩니다.
++
+image::setup/img-experiments-evaluation.png[완료된 실행과 정확도 메트릭을 보여주는 korean-llm-evaluation 실험의 Evaluation runs 보기]
+
+. 메트릭을 시각적으로 비교하려면 실행 목록 위의 차트 아이콘을 클릭합니다. MLflow는 기록된 메트릭(`overall_accuracy`, `category_accuracy`, `supercategory_accuracy`, `overall_score`)마다 하나의 차트를 표시합니다. 이 예시에서 모델은 20개의 스모크 테스트 문항 중 85%에 올바르게 답했습니다.
++
+image::setup/img-evaluation-graph-results.png[전체, 카테고리, 상위 카테고리 정확도와 전체 점수의 막대 차트를 보여주는 korean-llm-evaluation 실행의 차트 보기]
+
+== 핵심 개념: 모든 평가에 사용하는 하나의 클라이언트
+
+모든 실습 모듈은 동일한 EvalHub SDK 클라이언트를 사용합니다. 이 클라이언트에는 EvalHub URL, OpenShift 토큰, 그리고 EvalHub가 *테넌트*로 취급하는 네임스페이스만 필요합니다:
+
+[source,python,subs=none]
+----
+from evalhub import SyncEvalHubClient
+
+client = SyncEvalHubClient(
+    base_url=EVALHUB_URL,           # from .env
+    auth_token=EVALHUB_AUTH_TOKEN,  # from .env
+    insecure=True,                  # workshop clusters use self-signed certificates
+    tenant=NAMESPACE,               # jobs and experiments are created in your namespace
+)
+
+providers = client.providers.list()
+print(f"Available providers: {len(providers)}")
+----
+
+GuideLLM이나 Korean MCQ 어댑터와 같은 각 평가 프레임워크는 이 클라이언트 뒤에 있는 *프로바이더*입니다. 다음 모듈에서는 동일한 클라이언트와 동일한 작업 요청 구조로 서로 다른 프로바이더에 작업을 제출합니다.
+
+모듈 3으로 진행하여 GuideLLM으로 모델의 추론 성능을 측정합니다.

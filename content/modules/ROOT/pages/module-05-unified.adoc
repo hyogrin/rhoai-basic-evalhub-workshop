@@ -3,104 +3,181 @@
 [#unified]
 = Unified Evaluation in One Experiment
 
-Modules 3 and 4 showed performance and accuracy as separate jobs. Production model selection needs *both* -- and comparable history. This module uses EvalHub to run multi-benchmark Korean MCQ jobs and GuideLLM performance under a *shared MLflow experiment name*.
+In this module, you will bring accuracy and performance together. You will run five Korean accuracy benchmarks and a GuideLLM throughput test against your model, record all of their results in a single MLflow experiment, and compare them side by side.
 
-== Learning Objectives
+By the end of this module, you will have:
 
-* Submit multi-benchmark accuracy requests in one job payload
-* Attach accuracy and performance jobs to the same `ExperimentConfig` name
-* Compare runs inside a single MLflow experiment
+* An understanding of why release decisions need accuracy and performance results for the same model version
+* Five accuracy jobs and one performance job recorded under one MLflow experiment
+* A comparison of all results in the notebook and in MLflow
 
-== Exercise: Run the Unified Benchmark Notebook
+== Why a Unified Evaluation?
 
-[IMPORTANT]
-====
-Open the notebook and *run all cells* end-to-end.
+In Modules 3 and 4, each job created its own experiment. That works for exploring one dimension at a time, but a release decision needs every dimension for the same model version, side by side:
 
-*Workbench path::*
-`{evalhub-lab-clone}/3_eval_hub_unified_benchmark/1_unified_benchmark.ipynb`
+* *Is the new version accurate enough?* Accuracy on each benchmark must meet your threshold.
+* *Is it fast enough?* Throughput and latency must meet your service-level objectives.
+* *Is it better than the previous version?* You need the same set of results for every version, so that you can compare them.
 
-*GitHub::*
-{evalhub-lab-repo}/blob/main/3_eval_hub_unified_benchmark/1_unified_benchmark.ipynb
-====
+Recording one evaluation round in one MLflow experiment gives you that record. When you evaluate the next model version with the same benchmarks and settings, you can compare the two rounds directly.
 
-== Key Concept: Composite Jobs, Shared Experiment
+== How the Unified Evaluation Works
 
-=== Multi-benchmark accuracy
+The notebook runs the evaluation in two phases and records both in an experiment named `<model-name>-full-eval-<timestamp>`:
 
-Several Korean tasks can be declared in one `JobSubmissionRequest`:
+[cols="1,2,3",options="header"]
+|===
+| Phase | Jobs | What happens
 
-[source,python,subs=none]
-----
-multi_request = JobSubmissionRequest(
-    name="korean-multi-benchmark",
-    description="KMMLU + CLIcK + HAE-RAE",
-    tags=["korean", "comprehensive", "multi-benchmark"],
-    model=model,
-    benchmarks=[
-        BenchmarkConfig(id="kmmlu", provider_id=KOREAN_PROVIDER_ID,
-                        parameters={"temperature": 0.0, "max_tokens": 1024, "limit": LIMIT}),
-        BenchmarkConfig(id="click", provider_id=KOREAN_PROVIDER_ID,
-                        parameters={"temperature": 0.0, "max_tokens": 1024, "limit": LIMIT}),
-        BenchmarkConfig(id="haerae", provider_id=KOREAN_PROVIDER_ID,
-                        parameters={"temperature": 0.0, "max_tokens": 1024, "limit": LIMIT}),
-    ],
-    experiment=ExperimentConfig(name="korean-comprehensive-eval"),
-)
-----
+| *Phase A: Accuracy*
+| 5 Korean MCQ jobs: `click`, `haerae`, `kmmlu`, `kmmlu_hard`, and `kobest_boolq`
+| All five jobs are submitted at once and run in parallel, each on `LIMIT` questions.
 
-=== Unified accuracy + performance
+| *Phase B: Performance*
+| 1 GuideLLM job with the `throughput` profile
+| Starts after all accuracy jobs finish, so that the accuracy jobs do not add load to the model during the performance test. It sends requests as fast as the model accepts them, for up to 180 seconds or 50 requests, to measure maximum throughput.
+|===
 
-The notebook builds a shared experiment name (for example `$MODEL_NAME-full-eval-<timestamp>`), submits accuracy jobs for several benchmarks, then submits a GuideLLM throughput job with the *same* `ExperimentConfig(name=...)`.
+As you saw in Module 3, GuideLLM jobs do not log their metrics to MLflow themselves. The notebook therefore includes a step that logs the GuideLLM metrics to the same experiment, so that all results appear in one place.
+
+== Key Concept: One Experiment, Many Jobs
+
+Every job in the unified evaluation uses the same `ExperimentConfig` name. The jobs can use different providers, but MLflow groups all of their runs under one experiment:
 
 [source,python,subs=none]
 ----
 EXPERIMENT_NAME = f"{MODEL_NAME}-full-eval-{ts}"
 
-# Accuracy jobs (loop over click, haerae, kmmlu, ...)
-# each uses: experiment=ExperimentConfig(name=EXPERIMENT_NAME)
+# Phase A: one accuracy job per benchmark, all in the same experiment
+for bm in ["click", "haerae", "kmmlu", "kmmlu_hard", "kobest_boolq"]:
+    client.jobs.submit(JobSubmissionRequest(
+        name=f"unified-{bm}-{ts}",
+        model=model,
+        benchmarks=[BenchmarkConfig(
+            id=bm,
+            provider_id=KOREAN_PROVIDER_ID,
+            parameters={"temperature": 0.0, "max_tokens": 1024, "limit": LIMIT},
+        )],
+        experiment=ExperimentConfig(name=EXPERIMENT_NAME),
+    ))
 
+# Phase B: a performance job in the same experiment
 perf_request = JobSubmissionRequest(
     name=f"unified-perf-{MODEL_NAME}-{ts}",
-    description=f"GuideLLM throughput test for {MODEL_NAME}",
-    tags=["unified", "performance", "guidellm", MODEL_NAME],
     model=guidellm_model,
-    benchmarks=[
-        BenchmarkConfig(
-            id="throughput",
-            provider_id="guidellm",
-            parameters={
-                "profile": "throughput",
-                "max_seconds": 180,
-                "max_requests": 50,
-                "data": "prompt_tokens=128,output_tokens=64",
-                "request_type": "chat_completions",
-            },
-        )
-    ],
+    benchmarks=[BenchmarkConfig(
+        id="throughput",
+        provider_id="guidellm",
+        parameters={
+            "profile": "throughput",
+            "max_seconds": 180,
+            "max_requests": 50,
+            "data": "prompt_tokens=128,output_tokens=64",
+            "request_type": "chat_completions",
+        },
+    )],
     experiment=ExperimentConfig(name=EXPERIMENT_NAME),
 )
 ----
 
-// CAPTURE: notebook printing the shared EXPERIMENT_NAME
-image::img-unified-notebook-experiment.png[Unified evaluation experiment name printed in the notebook]
+A single job can also contain several benchmarks in its `benchmarks` list. The notebook shows this pattern in *Evaluation 1*, but the unified evaluation submits one job per benchmark so that you can follow each benchmark's progress separately.
 
-This is the workshop’s core EvalHub value: you are not stitching separate SDK result folders -- you are recording a *composite evaluation story* in one MLflow experiment.
+== Step 5.1: Open the Unified Benchmark Notebook
 
-== Verify in MLflow
+Before you start, make sure you have completed Modules 2 to 4. This module uses the same `.env` file, the `oc` login from Step 2.5 of Module 2, and the Korean MCQ provider registered in Module 2.
 
-. Open the unified experiment name printed by the notebook.
-. Confirm multiple runs (per benchmark / performance) appear under that experiment.
+*Notebook path:* `{evalhub-lab-clone}/3_eval_hub_unified_benchmark/1_unified_benchmark.ipynb` ({evalhub-lab-repo}/blob/main/3_eval_hub_unified_benchmark/1_unified_benchmark.ipynb[view on GitHub,window=_blank])
+
+. In the JupyterLab file browser, open `rhoai-evalhub-lab` > `3_eval_hub_unified_benchmark` > `1_unified_benchmark.ipynb`.
+. Run the cells one at a time from the top by selecting each cell and pressing *Shift+Enter*.
+
+NOTE: The number of questions per benchmark comes from `LIMIT` in `.env` and defaults to `5`. If you changed `.env` since Module 4, restart the notebook kernel (*Kernel* > *Restart Kernel*) before running the first cell.
+
+== Step 5.2: Run the Unified Evaluation
+
+Use the table below to check each result. The notebook uses its own step numbers, which are not the same as the step numbers in this module.
+
+[cols="2,1,3",options="header"]
+|===
+| Notebook cell | Action | Expected result
+
+| *Step 1: Configuration*
+| Run
+| Your namespace, model name, model endpoint, EvalHub URL, MLflow URI, and `Sample Limit: 5`
+
+| *Step 2: Initialize the EvalHub Client*
+| Run
+| `Model auth secret 'model-api-key' ready`, `EvalHub client connected`, and your model target
+
+| *Step 3: Discover Available Korean Benchmarks*
+| Run
+| `Korean MCQ provider found (id=...)` and a list of Korean benchmarks
+
+| *Evaluation 1: Multi-Benchmark Korean Evaluation* (three cells)
+| Run
+| The first cell defines helper functions. The second prints a multi-benchmark request for `kmmlu`, `click`, and `haerae`. The third prints `Skipped - see Phase A below`; no job is submitted.
+
+| *Evaluation 2: Sample Size Comparison* (two cells)
+| Run
+| `2 jobs ready` and `Skipped - see Phase A below`; no jobs are submitted.
+
+| *Evaluation 3: Unified Evaluation*, Phase A submit cell
+| Run
+| The unified experiment name, for example `redhataigemma-4-e4b-it-full-eval-1106-0845`, and a job ID for each of the five benchmarks
+
+| Phase A wait cell
+| Run
+| The state of all five jobs every 15 seconds, then `All accuracy jobs finished!` and the accuracy of each benchmark
+
+| *Phase B: GuideLLM Performance*
+| Run
+| A GuideLLM job ID, then `GuideLLM job completed!`, the performance metrics, and `All results tracked in MLflow experiment: ...`
+
+| *Log GuideLLM Metrics to MLflow (Manual)*
+| Run
+| `GuideLLM metrics logged to MLflow experiment: ...` with the run name and metrics
+
+| *Step 4: Results Comparison* (two cells)
+| Run
+| A comparison of the metrics of all completed jobs in your namespace, first as text and then as a table
+
+| *Step 5: MLflow Results*
+| Read
+| Background on the MLflow UI; there is no code to run.
+
+| *Step 6: Export Results* (two cells)
+| Run
+| A Markdown comparison table, then `Saved: ../results/<model-name>/...json` for each completed job
+|===
+
+Copy the unified experiment name printed by the Phase A submit cell. You use it to find the results in MLflow in Step 5.3.
+
+NOTE: The comparison and export cells include every completed job in your namespace, so you also see the jobs from Modules 2 to 4. The unified jobs are the ones whose names start with `unified-`.
+
+== Step 5.3: View the Unified Experiment in MLflow
+
+. In the {productname-short} dashboard, expand *Develop & train* in the left navigation and click *Experiments*.
+. Select your project from the *Project* drop-down.
+. Click the experiment named `<model-name>-full-eval-<timestamp>` that the notebook printed.
+. At the top of the experiment page, switch the view from *GenAI* to *Model training*. The experiment contains the runs of all six jobs:
 +
-// CAPTURE: MLflow runs list under the shared experiment
-image::img-unified-mlflow-runs.png[Multiple accuracy and performance runs under one MLflow experiment]
-
-. Compare accuracy metrics alongside throughput / latency metrics for the same model revision.
+* For each accuracy job, a run named `unified-<benchmark>-<timestamp>` that EvalHub creates when the job is submitted, and a run named after the job ID with the suffix `_0` that contains the accuracy metrics.
+* For the GuideLLM job, a run named `unified-perf-<model-name>-<timestamp>` with the evaluation card, and a run named `guidellm-unified-perf-...` that contains the performance metrics logged by the notebook.
 +
-// CAPTURE: MLflow compare view for unified runs
-image::img-unified-mlflow-compare.png[Comparing unified evaluation runs in MLflow]
+image::unified/img-unified-mlflow-model-training-runs.png[Model training view of the full-eval experiment listing the runs of the five accuracy jobs and the GuideLLM job]
++
+The runs named after a job ID, which show a completed status and a short duration, are the accuracy runs that contain metrics. The `unified-...` runs remain in the *Running* state.
 
-[TIP]
-====
-When comparing models later, keep benchmark ids, `limit`, and GuideLLM profiles constant so MLflow diffs stay meaningful.
-====
+. To compare the results, click the chart icon above the run list. MLflow shows one chart per metric, with one bar per run in a different color:
++
+* `overall_accuracy` and `overall_score` compare the five benchmarks at a glance.
+* The `category_accuracy.<category>` charts show the accuracy for each category that the sampled questions came from.
+* The GuideLLM throughput and latency metrics appear as additional charts once the notebook has logged them.
++
+Click the eye icon next to a run in the list to hide it from or show it in the charts.
++
+image::unified/img-unified-mlflow-charts.png[Chart view of the full-eval experiment comparing category accuracy, overall accuracy, and overall score across the accuracy runs]
+
+TIP: When you evaluate another model or a new version later, keep the benchmark IDs, `LIMIT`, and GuideLLM profile the same. MLflow comparisons are only meaningful when the evaluation settings match.
+
+Module 6, content-safety guardrail evaluation, is optional. If you have time, continue to xref:module-06-guardrails.adoc#guardrails[Module 6]. Otherwise, head to xref:module-07-closing.adoc#closing[Closing and Resources].

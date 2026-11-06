@@ -1,0 +1,227 @@
+:imagesdir: ../../assets/images
+
+[#kmcq-kr]
+= 한국어 MCQ 정확도 벤치마크
+
+이 모듈에서는 모델이 한국어 객관식 문항에 얼마나 정확하게 답하는지 측정합니다. 모듈 2에서 등록한 Korean MCQ 프로바이더에 정확도 작업을 제출하고, MLflow에서 카테고리별 결과를 검토한 후, 요약 보고서를 생성합니다.
+
+이 모듈을 완료하면 다음을 갖추게 됩니다:
+
+* 이 워크숍에서 사용할 수 있는 한국어 벤치마크와 모델 채점 방식에 대한 이해
+* EvalHub를 통해 실행하고 결과를 MLflow에 기록한 HAE-RAE 정확도 작업
+* 랩 리포지토리로 내보내고 Markdown 및 HTML 보고서로 요약한 평가 결과
+
+== 한국어 벤치마크가 필요한 이유
+
+범용 벤치마크는 대부분 영어로 작성되어 있습니다. 영어 벤치마크에서 좋은 성능을 보이는 모델도 한국어 어휘, 문법, 역사, 법률 또는 문화에서는 어려움을 겪을 수 있습니다. 사용자가 한국어로 상호 작용한다면, 모델이 적합한지 판단하기 위해 한국어로 작성된 벤치마크가 필요합니다.
+
+객관식 문항(MCQ)은 이를 측정 가능하게 합니다. 각 문항에는 정답이 하나뿐이므로 정확도를 자동으로 채점하고 모델, 버전, 서빙 구성 간에 비교할 수 있습니다.
+
+== Korean MCQ 프로바이더의 벤치마크
+
+모듈 2에서 등록한 Korean MCQ 프로바이더는 다음 벤치마크를 지원합니다:
+
+[cols="1,1,1,3",options="header"]
+|===
+| 벤치마크 ID | 문항 수 | 선택지 수 | 평가 내용
+
+| `haerae`
+| 약 4,900
+| 5
+| 어휘, 외래어, 역사, 독해 등 13개 카테고리에 걸친 한국어 능력과 일반 지식
+
+| `click`
+| 1,995
+| 5
+| Culture 및 Language 카테고리로 구분된 한국 문화 및 언어 지능
+
+| `kmmlu`
+| 35,030
+| 4
+| STEM, 인문사회, 응용과학, 기타 분야의 45개 과목에 걸친 전문가 수준의 지식
+
+| `kmmlu_hard`
+| 약 1,260
+| 4
+| 동일한 45개 과목에 걸친 가장 어려운 KMMLU 문항
+|===
+
+이 모듈에서는 `haerae`를 실행합니다. 모듈 2에서 이미 짧은 `click` 스모크 테스트를 실행했으며, 모듈 5에서는 여러 벤치마크를 하나의 작업으로 결합합니다.
+
+== Korean MCQ 평가기의 모델 채점 방식
+
+각 벤치마크 작업마다 EvalHub는 모듈 2에서 빌드한 Korean MCQ 어댑터 이미지를 네임스페이스의 Pod로 시작합니다. 어댑터는 다음을 수행합니다:
+
+. Hugging Face에서 벤치마크 데이터셋을 다운로드합니다.
+. 각 문항과 선택지를 프롬프트로 구성하고, 프롬프트를 모델 엔드포인트에 병렬로 전송합니다.
+. 각 응답에서 선택한 답을 파싱하여 정답과 비교합니다.
+. 결과를 EvalHub에 보고하고 MLflow에 기록합니다:
+** `overall_accuracy` -- 정답을 맞힌 문항의 비율(%)
+** `category_accuracy.<category>` -- 벤치마크의 카테고리별 정확도
+** `overall_score` -- 0과 1 사이 값으로 나타낸 전체 정확도
+
+`limit` 매개변수는 평가할 문항 수를 설정합니다. 워크숍에서는 수업 시간 내에 작업이 완료되도록 작은 limit을 사용합니다. 전체 벤치마크 실행은 수천 개의 문항을 평가하며, 더 긴 오프라인 평가에서 수행하는 것이 적합합니다.
+
+== 핵심 개념: 동일한 작업 API, 다른 프로바이더
+
+정확도 작업은 모듈 3의 GuideLLM 작업과 동일한 클라이언트와 `JobSubmissionRequest` 구조를 사용합니다. 프로바이더, 벤치마크 ID, 매개변수만 달라집니다:
+
+[source,python,subs=none]
+----
+single_request = JobSubmissionRequest(
+    name="haerae-eval",
+    description="HAE-RAE benchmark - Korean language understanding",
+    tags=["korean", "haerae", MODEL_NAME],
+    model=model,
+    benchmarks=[
+        BenchmarkConfig(
+            id="haerae",                       # benchmark in the Korean MCQ provider
+            provider_id=KOREAN_PROVIDER_ID,    # discovered with client.providers.list()
+            parameters={"temperature": 0.0, "max_tokens": 1024, "limit": LIMIT},
+        ),
+    ],
+    experiment=ExperimentConfig(
+        name="korean-haerae-eval",
+        tags=[
+            ExperimentTag(key="language", value="korean"),
+            ExperimentTag(key="benchmark_suite", value="haerae"),
+        ],
+    ),
+)
+
+job = client.jobs.submit(single_request)
+----
+
+`temperature`를 `0.0`으로 설정하면 모델의 답변이 최대한 결정적으로 생성되므로, 동일한 문항에 대해 반복 실행(run)해도 비교 가능한 정확도를 얻을 수 있습니다.
+
+== 단계 4.1: Korean MCQ 노트북 열기
+
+시작하기 전에 모듈 2를 완료했는지 확인합니다. 이 모듈은 동일한 `.env` 파일, 모듈 2의 단계 2.5에서 수행한 `oc` 로그인, 설정 노트북에서 등록한 Korean MCQ 프로바이더를 사용합니다.
+
+*노트북 경로:* `{evalhub-lab-clone}/2_eval_hub_kmcq_benchmark/1_kmcq_benchmark.ipynb` ({evalhub-lab-repo}/blob/main/2_eval_hub_kmcq_benchmark/1_kmcq_benchmark.ipynb[GitHub에서 보기,window=_blank])
+
+. JupyterLab 파일 브라우저에서 `rhoai-evalhub-lab` > `2_eval_hub_kmcq_benchmark` > `1_kmcq_benchmark.ipynb`를 엽니다.
+. 맨 위부터 각 셀을 선택하고 *Shift+Enter*를 눌러 셀을 하나씩 실행합니다.
+
+NOTE: 문항 수는 `.env`의 `LIMIT` 값에서 가져오며 기본값은 `5`입니다. 더 많은 문항을 평가하려면 `.env`에 `LIMIT='20'`과 같은 줄을 추가하고, 첫 번째 셀을 실행하기 전에 노트북 커널을 다시 시작합니다(*Kernel* > *Restart Kernel*).
+
+== 단계 4.2: 정확도 작업 실행
+
+아래 표를 사용하여 각 결과를 확인합니다. 노트북은 자체 단계 번호를 사용하며, 이 모듈의 단계 번호와 다릅니다.
+
+[cols="2,1,3",options="header"]
+|===
+| 노트북 셀 | 동작 | 예상 결과
+
+| *Step 1: Configuration*
+| 실행
+| 네임스페이스, 모델 이름, 모델 엔드포인트, EvalHub URL, MLflow URI, `Sample Limit: 5`
+
+| *Step 2: Initialize the EvalHub Client*
+| 실행
+| `Model auth secret 'model-api-key' ready`, `EvalHub client connected`, 모델 대상
+
+| *Step 3: Discover Available Korean Benchmarks*
+| 실행
+| `Korean MCQ provider found (id=...)`와 `haerae`, `click`, `kmmlu`를 포함한 한국어 벤치마크 목록
+
+| *1-A: Submit the Job*
+| 실행
+| 작업 ID, 이름 `haerae-eval`, 상태 `pending`과 함께 표시되는 `Job submitted successfully!`
+
+| *1-B: Monitor Progress*
+| 실행
+| 10초마다 표시되는 경과 시간과 상태, 마지막에 `Final state: completed`. `LIMIT`이 `5`이면 작업은 약 30초가 소요됩니다.
+
+| *1-C: View Results*
+| 실행
+| MLflow 실행 ID와 `haerae`의 정확도 지표
+
+| *Step 4: Job Management* > *List All Jobs*
+| 실행
+| 모듈 2와 3의 작업을 포함하여 네임스페이스의 모든 평가 작업 표
+
+| *Step 4: Job Management* > *Inspect a Specific Job*
+| 선택 사항
+| 이 셀은 주석 처리되어 있습니다. 작업을 검사하려면 해당 ID를 `JOB_ID`에 붙여 넣고, 주석을 해제한 후 셀을 실행합니다.
+
+| *Step 5: Export Results* (셀 2개)
+| 실행
+| Markdown 비교 표, 이어서 완료된 각 작업에 대한 `Saved: ../results/<model-name>/...json`
+|===
+
+=== HAE-RAE 작업 결과
+
+모니터링 셀은 작업이 완료될 때까지 10초마다 작업 및 벤치마크 상태를 표시합니다:
+
+.완료될 때까지 모니터링한 HAE-RAE 작업
+image::kmcq/img-kmcq-haerae-job-monitoring.png[약 30초 만에 pending에서 completed로 전환되는 HAE-RAE 작업을 모니터링하는 노트북 출력]
+
+이어서 *1-C: View Results* 셀이 MLflow 실행 ID와 정확도 지표를 출력합니다. 문항이 5개뿐이면 대개 하나의 HAE-RAE 카테고리에서 출제되므로, `overall_accuracy`와 하나의 `category_accuracy.<category>` 지표(예: `category_accuracy.correct_definition_matching`)가 표시됩니다.
+
+=== 내보낸 결과
+
+*Export to Markdown* 셀은 네임스페이스에서 완료된 모든 작업의 지표를 벤치마크별로 수집합니다. 표에는 `haerae` 외에도 모듈 3의 GuideLLM 작업이 `constant` 및 `sweep` 벤치마크로 포함됩니다:
+
+.완료된 모든 작업의 Markdown 비교 표
+image::kmcq/img-kmcq-export-markdown-table.png[GuideLLM 및 HAE-RAE 작업의 지표 Markdown 표를 보여 주는 노트북 출력]
+
+*Save Results to JSON* 셀은 완료된 작업마다 하나의 파일을 랩 리포지토리의 `results/<model-name>/`에 저장합니다. 단계 4.4의 요약 노트북이 이 파일을 읽습니다.
+
+.완료된 각 작업에 대해 저장된 결과 파일
+image::kmcq/img-kmcq-export-saved-json.png[완료된 각 작업에 대해 저장된 JSON 결과 파일 목록을 보여 주는 노트북 출력]
+
+== 단계 4.3: MLflow에서 정확도 결과 확인
+
+모듈 3의 GuideLLM 작업과 달리 Korean MCQ 어댑터는 지표를 MLflow에 직접 기록하므로 차트로 확인할 수 있습니다.
+
+. {productname-short} 대시보드의 왼쪽 탐색 메뉴에서 *Develop & train*을 펼치고 *Experiments*를 클릭합니다.
+. *Project* 드롭다운에서 본인의 프로젝트를 선택합니다.
+. `korean-haerae-eval` 실험을 클릭합니다. 이 실험은 모듈 3의 GuideLLM 실험과 모듈 2의 `korean-llm-evaluation` 실험 위, 목록의 맨 위에 표시됩니다.
++
+image::kmcq/img-kmcq-mlflow-experiments-list.png[GuideLLM 실험과 korean-llm-evaluation 실험 위에 korean-haerae-eval 실험이 나열된 Experiments 페이지]
+
+. 실험 페이지 상단에서 보기를 *GenAI*에서 *Model training*으로 전환합니다. 실험에는 두 개의 실행이 있습니다:
++
+* `haerae-eval`: 작업을 제출할 때 EvalHub가 생성하는 실행입니다. *Running* 상태로 유지되며 지표가 없습니다.
+* 작업 ID에 접미사 `_0`이 붙은 이름의 실행(예: `8eb3ae4e-..._0`): Korean MCQ 어댑터가 생성하고 정확도 지표를 기록하는 실행입니다.
++
+image::kmcq/img-kmcq-mlflow-model-training-runs.png[haerae-eval 실행과 작업 ID 실행이 나열된 korean-haerae-eval 실험의 Model training 보기]
+
+. 작업 ID 이름의 실행을 클릭한 다음 *Model metrics* 탭을 엽니다. MLflow는 `overall_accuracy`, `overall_score`, 샘플에 포함된 각 HAE-RAE 카테고리의 `category_accuracy` 등 지표마다 하나의 차트를 표시합니다.
++
+image::kmcq/img-kmcq-mlflow-model-metrics.png[카테고리 정확도, 전체 정확도, 전체 점수 차트를 보여 주는 HAE-RAE 실행의 Model metrics 탭]
+
+`LIMIT`이 작으면 문항이 하나 또는 몇 개의 카테고리에만 포함되며, 각 정확도 값은 매우 적은 답변을 기반으로 합니다. 예를 들어 5문항 중 5문항을 맞히면 `overall_accuracy`는 `100`이 됩니다. 이 결과는 모델의 한국어 능력을 신뢰성 있게 측정한 것이 아니라 파이프라인이 동작하는지 확인하는 용도로 활용합니다.
+
+== 단계 4.4: 요약 보고서 생성
+
+두 번째 노트북은 단계 4.2에서 내보낸 결과 파일을 집계하여 Markdown 및 HTML 보고서를 생성합니다. 여러 모델이나 벤치마크를 비교할 때 유용합니다.
+
+*노트북 경로:* `{evalhub-lab-clone}/2_eval_hub_kmcq_benchmark/2_summarize_results.ipynb` ({evalhub-lab-repo}/blob/main/2_eval_hub_kmcq_benchmark/2_summarize_results.ipynb[GitHub에서 보기,window=_blank])
+
+. `2_summarize_results.ipynb`를 열고 맨 위부터 셀을 하나씩 실행합니다.
+. 노트북은 `results/<model-name>/`에서 JSON 파일을 로드하고, 벤치마크별·모델별 정확도 표를 작성하며, KMMLU 및 CLIcK 결과를 카테고리와 상위 카테고리별로 집계합니다.
+. 마지막 단계에서 `results/RESULTS.md`를 작성하고 `results/report.html`에 대화형 HTML 보고서를 생성합니다. *Step 7: Generate HTML Report* 셀은 포함된 모델 및 태스크 수와 함께 `Report generated: ../results/report.html`을 출력합니다.
++
+.RESULTS.md를 저장하고 report.html을 생성하는 요약 노트북
+image::kmcq/img-kmcq-generate-report-cell.png[RESULTS.md에 저장된 정확도 표와 report.html을 생성하는 Step 7 셀을 보여 주는 요약 노트북 출력]
+
+. JupyterLab 파일 브라우저에서 `rhoai-evalhub-lab` > `results`를 엽니다. `report.html`의 수정 시간이 최근으로 표시되지 않으면 새로 고침 아이콘을 클릭한 다음 `report.html`을 엽니다.
+. 뷰어 상단의 *Trust HTML*을 클릭합니다. 보고서는 JavaScript로 차트를 그리며, JupyterLab은 신뢰된 HTML에서만 스크립트를 실행합니다. 파일을 신뢰하기 전까지는 *Score Comparison*과 같은 차트 섹션이 비어 있습니다.
++
+.결과로 생성된 Korean LLM Benchmark Report
+image::kmcq/img-kmcq-summary-report.png[Trust HTML이 강조 표시되고 모델별 전체 정확도 카드가 표시된, 참가자의 결과로 생성된 report.html]
++
+*Trust HTML*을 클릭하면 버튼이 *Distrust HTML*로 바뀌고 차트가 나타납니다. *Score Comparison* 차트는 각 벤치마크에서 모델별 정확도를 보여 주며, *Detailed Results* 표는 동일한 점수를 나열하고 벤치마크별 최고 점수를 강조 표시합니다:
++
+.보고서를 신뢰한 후의 Score Comparison 차트와 Detailed Results 표
+image::kmcq/img-kmcq-summary-report-charts.png[벤치마크 및 모델별 Score Comparison 막대 차트와 Detailed Results 표를 보여 주는 신뢰된 보고서]
+
+`results` 폴더에는 랩 작성자가 이전에 평가한 `glm-53-flash`, `gemma4-12b`, `qwen3-14b` 등 여러 모델의 샘플 결과가 이미 포함되어 있습니다. 보고서는 사용자의 모델을 이 모델들과 비교합니다. 보고서 상단의 *Generated* 시간이 현재 시간인지, 그리고 사용자의 모델(예: `redhataigemma-4-e4b-it`)이 모델 목록에 표시되는지 확인합니다. 샘플 결과는 훨씬 많은 문항으로 생성되었으므로, 작은 `LIMIT`을 기반으로 한 점수는 이 결과와 직접 비교할 수 없습니다. 동일한 정확도 표를 Markdown으로 보려면 `RESULTS.md`를 열 수도 있습니다.
+
+NOTE: 보고서는 `results`의 모든 폴더를 모델로 처리합니다. `guardrail`(모듈 6의 가드레일 노트북 결과)과 `.ipynb_checkpoints`(JupyterLab이 자동으로 생성하는 폴더) 같은 카드는 `0.0%`로 표시되며 모델이 아닙니다. 이 카드는 무시해도 됩니다.
+
+보고서에는 `overall_accuracy`를 보고하는 정확도 작업만 포함됩니다. 모듈 3의 GuideLLM 성능 결과는 `results/`로 내보내지지만 정확도 표에는 표시되지 않습니다.
+
+여러 정확도 벤치마크와 성능 테스트를 하나의 평가로 결합하려면 모듈 5로 진행합니다.

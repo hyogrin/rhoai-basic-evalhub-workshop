@@ -5,3 +5,12 @@
 * xref:module-05-unified.adoc#unified[Module 5: Unified Evaluation in One Experiment]
 * xref:module-06-guardrails.adoc#guardrails[Module 6: Guardrails Evaluation (Optional)]
 * xref:module-07-closing.adoc#closing[Closing and Resources]
+
+.한국어 (Korean)
+* xref:kr/module-01-introduction.adoc#introduction-kr[1: 소개 -- 평가 중심 접근의 필요성]
+* xref:kr/module-02-setup.adoc#setup-kr[2: EvalHub 및 MLflow 설정]
+* xref:kr/module-03-guidellm.adoc#guidellm-kr[3: GuideLLM 성능 벤치마크]
+* xref:kr/module-04-kmcq.adoc#kmcq-kr[4: 한국어 MCQ 정확도 벤치마크]
+* xref:kr/module-05-unified.adoc#unified-kr[5: 하나의 실험에서 통합 평가]
+* xref:kr/module-06-guardrails.adoc#guardrails-kr[6: 가드레일 평가 (선택 사항)]
+* xref:kr/module-07-closing.adoc#closing-kr[마무리 및 참고 자료]

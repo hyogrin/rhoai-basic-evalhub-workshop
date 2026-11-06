@@ -1,0 +1,85 @@
+:imagesdir: ../../assets/images
+
+[#guardrails-kr]
+= 가드레일 평가 (선택 사항)
+
+[NOTE]
+====
+이 모듈은 *필수 모듈(모듈 1-5)을 일찍 완료한 참가자를 위한 선택적 확장 과정*입니다. 시간이 있고 콘텐츠 안전성을 살펴보고 싶다면 아래의 참고 노트북과 예시 보고서를 검토하십시오. 이 노트북을 실행하지 않아도 워크숍을 완료할 수 있습니다.
+
+Kanana Safeguard 또는 Nemotron Safety Guard를 사용하는 NeMo Guardrails 평가에는 추가 모델 배포와 엔드포인트 구성이 필요합니다. 이 단계는 워크숍 실습 범위에 포함되지 않으며, 노트북은 추가 학습을 위한 참고 자료로 제공됩니다.
+====
+
+== 살펴볼 수 있는 내용
+
+정확도와 성능만으로는 *"서비스해도 안전한가?"*라는 질문에 답할 수 없습니다. 참고 노트북은 *Kanana Safeguard 8B* 또는 *Nemotron Safety Guard*와 함께 NeMo Guardrails를 사용하여 한국어 혐오 표현 데이터로 콘텐츠 안전성 가드레일을 평가하는 방법을 보여 줍니다.
+
+이 노트북을 사용하여 다음을 수행할 수 있습니다:
+
+* 정규식 기반 필터링과 모델 기반 콘텐츠 안전성을 비교합니다.
+* 레이블이 지정된 K-MHaS 샘플을 평가하고 정밀도(Precision), 재현율(Recall), F1, 정확도를 측정합니다.
+* 오탐(False positive, 차단된 안전한 메시지)과 미탐(False negative, 허용된 유해 메시지)을 확인합니다.
+* 안전성 모델 간 카테고리별 필터링 결과를 비교합니다.
+* HTML 보고서를 생성하고 평가 메트릭과 아티팩트를 MLflow에 기록합니다.
+* 고급 노트북에서 한국어 프롬프트 예시, 카테고리 필터링, 계층형 가드레일을 살펴봅니다.
+
+== 참고 노트북
+
+노트북은 워크벤치의 `{evalhub-lab-clone}/5_eval_guardrail/`에 있습니다. 추가 모델을 배포하지 않고도 노트북을 읽고 예시 보고서를 검토할 수 있습니다.
+
+* {evalhub-lab-repo}/blob/main/5_eval_guardrail/1_guardrail_setup.ipynb[`1_guardrail_setup.ipynb` -- NeMo Guardrails 구성 참고 자료]: 정규식 기반 및 모델 기반 콘텐츠 안전성을 위한 ConfigMap, `NemoGuardrails` 리소스 등록, 연결 확인.
+* {evalhub-lab-repo}/blob/main/5_eval_guardrail/2_guardrail_test.ipynb[`2_guardrail_test.ipynb` -- 대화형 비교]: 정규식 기반 구성과 콘텐츠 안전성 구성의 응답을 비교합니다.
+* {evalhub-lab-repo}/blob/main/5_eval_guardrail/3_evaluate_guardrail_nemo.ipynb[`3_evaluate_guardrail_nemo.ipynb` -- Nemotron Safety Guard 평가]: NeMo Guardrails를 통해 K-MHaS 샘플을 평가하고 메트릭과 HTML 보고서를 생성합니다.
+* {evalhub-lab-repo}/blob/main/5_eval_guardrail/3_evaluate_guardrail_kanana.ipynb[`3_evaluate_guardrail_kanana.ipynb` -- Kanana Safeguard 평가]: Kanana 고유의 프롬프트 형식과 사용자 정의 출력 파서를 사용하여 NeMo Guardrails와 통합한 후 한국어 콘텐츠 안전성을 평가합니다.
+* {evalhub-lab-repo}/blob/main/5_eval_guardrail/4_evaluate_guardrail_advanced.ipynb[`4_evaluate_guardrail_advanced.ipynb` -- 추가 학습]: 기존 평가 결과를 사용하여 프롬프트 변경, 카테고리 필터링, 계층형 가드레일, 파인튜닝 접근 방식을 검토합니다.
+
+== 나중에 노트북을 실행하려는 경우
+
+평가 대상 LLM과 선택한 가드레일 모델을 배포하기 위한 *추가 GPU 용량*을 계획하십시오. 단일 평가 경로를 살펴보려면 안전성 모델 하나만 있으면 되며, Kanana와 Nemotron을 비교하려면 두 모델 모두에 접근할 수 있어야 합니다.
+
+참고 노트북을 실행하기 전에 다음을 수행합니다:
+
+* 평가 대상으로 사용할 LLM과 안전성 모델(Kanana Safeguard 8B 또는 Nemotron Safety Guard)을 배포합니다.
+* NeMo Guardrails 서비스를 배포하고 대상 LLM 및 안전성 모델 엔드포인트를 사용하도록 구성합니다.
+* 선택한 노트북에 필요한 모델 이름, 엔드포인트 URL, 인증, 가드레일 경로를 구성합니다. 모듈 2의 일곱 가지 연결 변수만으로는 이 확장 과정에 충분하지 않습니다.
+* 가드레일 구성을 관리하는 데 필요한 클러스터 권한을 준비하고, 강사 또는 관리자와 함께 모델 연결과 MLflow 접근을 확인합니다.
+
+선택한 노트북의 사전 요구 사항과 구성 셀을 환경 설정의 참고 자료로 사용하십시오. 배포와 엔드포인트 설정이 준비되면 평가를 실행하고 아래 예시와 같은 보고서를 생성할 수 있습니다.
+
+== 예시 보고서 출력
+
+다음 보고서는 실습 리포지토리에 저장된 *K-MHaS 샘플 2,000개*의 평가 결과입니다. 노트북을 실행하거나 GPU를 추가하지 않고도 확인할 수 있습니다. 이 보고서는 출력 형식을 보여 주며, 결과는 사용한 모델, 가드레일 구성, 데이터셋 샘플에 따라 달라집니다.
+
+각 평가는 다음을 생성합니다:
+
+* 요약 메트릭, 차트, 카테고리별 분석, 결과 분석이 포함된 독립형 *HTML 보고서*.
+* 샘플별 평가 결과가 포함된 *CSV 파일*.
+* 올바른 판단, 과잉 차단, 놓친 유해 콘텐츠를 보여 주는 *혼동 행렬 및 필터율 차트*.
+
+생성된 파일은 실습 리포지토리의 `results/guardrail/`에 저장됩니다. 노트북은 출력 경로를 표시하며, 메트릭과 아티팩트를 MLflow에 기록하는 셀을 포함합니다.
+
+=== Kanana Safeguard 예시
+
+xref:attachment$guardrail-kanana-example-report.html[저장된 Kanana Safeguard HTML 보고서 열기].
+
+.Kanana Safeguard: 저장된 2,000개 샘플 평가의 혼동 행렬 및 필터율
+image::img-guardrail-kanana-example.png[Kanana Safeguard 예시 혼동 행렬 및 필터율 차트]
+
+=== Nemotron Safety Guard 예시
+
+xref:attachment$guardrail-nemotron-example-report.html[저장된 Nemotron Safety Guard HTML 보고서 열기].
+
+.Nemotron Safety Guard: 저장된 2,000개 샘플 평가의 혼동 행렬 및 필터율
+image::img-guardrail-nemotron-example.png[Nemotron Safety Guard 예시 혼동 행렬 및 필터율 차트]
+
+== 보고서 해석 방법
+
+* *정밀도(Precision)*: 차단된 메시지 중 실제로 유해한 메시지는 얼마나 됩니까?
+* *재현율(Recall)*: 유해한 메시지 중 차단된 메시지는 얼마나 됩니까?
+* *F1*: 구성이 정밀도와 재현율의 균형을 얼마나 잘 유지합니까?
+* *오탐률(False positive rate)*: 안전한 메시지가 얼마나 자주 차단됩니까?
+* *미탐률(False negative rate)*: 유해한 콘텐츠가 얼마나 자주 통과됩니까?
+
+혼동 행렬과 카테고리별 분석을 사용하여 구성이 과잉 차단하거나 유해 콘텐츠를 놓치는 부분을 파악합니다. 모델에 대한 결론을 내리기 전에 동일한 데이터셋 샘플과 평가 설정을 사용한 보고서끼리 비교하십시오.
+
+마칠 준비가 되면 xref:kr/module-07-closing.adoc#closing-kr[마무리 및 참고 자료]로 이동합니다.
