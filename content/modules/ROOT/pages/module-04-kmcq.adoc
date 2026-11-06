@@ -3,33 +3,68 @@
 [#kmcq]
 = Korean MCQ Accuracy Benchmark
 
-This module evaluates *language and knowledge accuracy* using Korean multiple-choice benchmarks (for example HAE-RAE, KMMLU, CLIcK) through EvalHub’s Korean MCQ provider. Results are tracked in MLflow so accuracy runs share the same experiment discipline as performance jobs.
+In this module, you will measure how accurately your model answers Korean multiple-choice questions. You will submit an accuracy job to the Korean MCQ provider that you registered in Module 2, review the per-category results in MLflow, and generate a summary report.
 
-== Learning Objectives
+By the end of this module, you will have:
 
-* Discover Korean benchmarks registered on EvalHub
-* Submit a single-benchmark accuracy job
-* Find accuracy metrics and artifacts in MLflow
+* An understanding of the Korean benchmarks available in this workshop and how they score a model
+* A HAE-RAE accuracy job run through EvalHub, with its results recorded in MLflow
+* Your evaluation results exported to the lab repository and summarized in a Markdown and HTML report
 
-== Exercise: Run the Korean MCQ Notebook
+== Why Korean Benchmarks?
 
-[IMPORTANT]
-====
-Open the notebook and *run all cells* end-to-end.
+General-purpose benchmarks are mostly written in English. A model that performs well on them can still struggle with Korean vocabulary, grammar, history, law, or culture. If your users interact in Korean, you need benchmarks written in Korean to know whether the model is fit for them.
 
-*Workbench path::*
-`{evalhub-lab-clone}/2_eval_hub_kmcq_benchmark/1_kmcq_benchmark.ipynb`
+Multiple-choice questions (MCQ) make this measurable: each question has one correct answer, so accuracy can be scored automatically and compared across models, versions, and serving configurations.
 
-*GitHub::*
-{evalhub-lab-repo}/blob/main/2_eval_hub_kmcq_benchmark/1_kmcq_benchmark.ipynb
+== Benchmarks in the Korean MCQ Provider
 
-Optional follow-up for tables/reports::
-`{evalhub-lab-clone}/2_eval_hub_kmcq_benchmark/2_summarize_results.ipynb` -- {evalhub-lab-repo}/blob/main/2_eval_hub_kmcq_benchmark/2_summarize_results.ipynb
-====
+The Korean MCQ provider you registered in Module 2 supports the following benchmarks:
+
+[cols="1,1,1,3",options="header"]
+|===
+| Benchmark ID | Questions | Choices | What it tests
+
+| `haerae`
+| About 4,900
+| 5
+| Korean language and general knowledge across 13 categories, such as vocabulary, loan words, history, and reading comprehension
+
+| `click`
+| 1,995
+| 5
+| Korean cultural and linguistic intelligence, grouped into Culture and Language categories
+
+| `kmmlu`
+| 35,030
+| 4
+| Expert-level knowledge across 45 subjects in STEM, humanities and social sciences, applied science, and other fields
+
+| `kmmlu_hard`
+| About 1,260
+| 4
+| The most difficult KMMLU questions, across the same 45 subjects
+|===
+
+This module runs `haerae`. You already ran a short `click` smoke test in Module 2, and Module 5 combines several benchmarks in one job.
+
+== How the Korean MCQ Evaluator Scores a Model
+
+For each benchmark job, EvalHub starts the Korean MCQ adapter image you built in Module 2 as a pod in your namespace. The adapter:
+
+. Downloads the benchmark dataset from Hugging Face.
+. Formats each question and its choices as a prompt and sends the prompts to your model endpoint in parallel.
+. Parses the chosen answer from each response and compares it with the correct answer.
+. Reports the results to EvalHub and logs them to MLflow:
+** `overall_accuracy` -- the percentage of questions answered correctly
+** `category_accuracy.<category>` -- the accuracy for each category in the benchmark
+** `overall_score` -- the overall accuracy as a value between 0 and 1
+
+The `limit` parameter sets how many questions are evaluated. The workshop uses a small limit so that jobs finish in class time. A full benchmark run evaluates thousands of questions and belongs in a longer offline evaluation.
 
 == Key Concept: Same Job API, Different Provider
 
-Accuracy jobs reuse `SyncEvalHubClient` and `JobSubmissionRequest`. Only the *provider* and *benchmark id* change:
+Accuracy jobs use the same client and `JobSubmissionRequest` structure as the GuideLLM jobs in Module 3. Only the provider, benchmark ID, and parameters change:
 
 [source,python,subs=none]
 ----
@@ -40,8 +75,8 @@ single_request = JobSubmissionRequest(
     model=model,
     benchmarks=[
         BenchmarkConfig(
-            id="haerae",
-            provider_id=KOREAN_PROVIDER_ID,  # discovered from client.providers.list()
+            id="haerae",                       # benchmark in the Korean MCQ provider
+            provider_id=KOREAN_PROVIDER_ID,    # discovered with client.providers.list()
             parameters={"temperature": 0.0, "max_tokens": 1024, "limit": LIMIT},
         ),
     ],
@@ -55,29 +90,138 @@ single_request = JobSubmissionRequest(
 )
 
 job = client.jobs.submit(single_request)
-print(job.id, job.state.value)
-print("MLflow experiment:", job.resource.mlflow_experiment_id)
 ----
 
-// CAPTURE: notebook job submit output including MLflow experiment id
-image::img-kmcq-notebook-job.png[Korean MCQ job submitted with MLflow experiment id]
+Setting `temperature` to `0.0` makes the model's answers as deterministic as possible, so repeated runs on the same questions give comparable accuracy.
 
-[TIP]
-====
-Keep `LIMIT` small during the workshop (as set in `.env`) so jobs finish in class time. Full-dataset runs belong in longer offline evaluations.
-====
+== Step 4.1: Open the Korean MCQ Notebook
 
-== Verify in MLflow
+Before you start, make sure you have completed Module 2. This module uses the same `.env` file, the `oc` login from Step 2.5 of Module 2, and the Korean MCQ provider registered by the setup notebook.
 
-. Open the experiment named by the notebook (for example `korean-haerae-eval`).
-. Confirm the run logged parameters (`benchmark`, `limit`, model name) and accuracy-related metrics.
+*Notebook path:* `{evalhub-lab-clone}/2_eval_hub_kmcq_benchmark/1_kmcq_benchmark.ipynb` ({evalhub-lab-repo}/blob/main/2_eval_hub_kmcq_benchmark/1_kmcq_benchmark.ipynb[view on GitHub,window=_blank])
+
+. In the JupyterLab file browser, open `rhoai-evalhub-lab` > `2_eval_hub_kmcq_benchmark` > `1_kmcq_benchmark.ipynb`.
+. Run the cells one at a time from the top by selecting each cell and pressing *Shift+Enter*.
+
+NOTE: The number of questions comes from `LIMIT` in `.env` and defaults to `5`. To evaluate more questions, add a line such as `LIMIT='20'` to `.env` and restart the notebook kernel (*Kernel* > *Restart Kernel*) before running the first cell.
+
+== Step 4.2: Run the Accuracy Job
+
+Use the table below to check each result. The notebook uses its own step numbers, which are not the same as the step numbers in this module.
+
+[cols="2,1,3",options="header"]
+|===
+| Notebook cell | Action | Expected result
+
+| *Step 1: Configuration*
+| Run
+| Your namespace, model name, model endpoint, EvalHub URL, MLflow URI, and `Sample Limit: 5`
+
+| *Step 2: Initialize the EvalHub Client*
+| Run
+| `Model auth secret 'model-api-key' ready`, `EvalHub client connected`, and your model target
+
+| *Step 3: Discover Available Korean Benchmarks*
+| Run
+| `Korean MCQ provider found (id=...)` and a list of Korean benchmarks, including `haerae`, `click`, and `kmmlu`
+
+| *1-A: Submit the Job*
+| Run
+| `Job submitted successfully!` with the job ID, the name `haerae-eval`, and the state `pending`
+
+| *1-B: Monitor Progress*
+| Run
+| The elapsed time and state every 10 seconds, ending with `Final state: completed`. With `LIMIT` set to `5`, the job takes about 30 seconds.
+
+| *1-C: View Results*
+| Run
+| The MLflow run ID and the accuracy metrics for `haerae`
+
+| *Step 4: Job Management* > *List All Jobs*
+| Run
+| A table of all evaluation jobs in your namespace, including those from Modules 2 and 3
+
+| *Step 4: Job Management* > *Inspect a Specific Job*
+| Optional
+| The cell is commented out. To inspect any job, paste its ID into `JOB_ID`, uncomment the lines, and run the cell.
+
+| *Step 5: Export Results* (two cells)
+| Run
+| A Markdown comparison table, then `Saved: ../results/<model-name>/...json` for each completed job
+|===
+
+=== HAE-RAE Job Results
+
+The monitoring cell shows the job and benchmark state every 10 seconds until the job completes:
+
+.HAE-RAE job monitored until completion
+image::kmcq/img-kmcq-haerae-job-monitoring.png[Notebook output monitoring the HAE-RAE job from pending to completed in about 30 seconds]
+
+The *1-C: View Results* cell then prints the MLflow run ID and the accuracy metrics. With only 5 questions, the questions usually come from a single HAE-RAE category, so you see `overall_accuracy` and one `category_accuracy.<category>` metric, for example `category_accuracy.correct_definition_matching`.
+
+=== Exported Results
+
+The *Export to Markdown* cell collects the metrics of every completed job in your namespace, grouped by benchmark. Besides `haerae`, the table includes the GuideLLM jobs from Module 3 under the `constant` and `sweep` benchmarks:
+
+.Markdown comparison table of all completed jobs
+image::kmcq/img-kmcq-export-markdown-table.png[Notebook output showing the Markdown table of metrics for the GuideLLM and HAE-RAE jobs]
+
+The *Save Results to JSON* cell writes one file per completed job to `results/<model-name>/` in the lab repository. The summary notebook in Step 4.4 reads these files.
+
+.Result files saved for each completed job
+image::kmcq/img-kmcq-export-saved-json.png[Notebook output listing the JSON result files saved for each completed job]
+
+== Step 4.3: View the Accuracy Results in MLflow
+
+Unlike the GuideLLM jobs in Module 3, the Korean MCQ adapter logs its metrics directly to MLflow, so you can view them as charts.
+
+. In the {productname-short} dashboard, expand *Develop & train* in the left navigation and click *Experiments*.
+. Select your project from the *Project* drop-down.
+. Click the `korean-haerae-eval` experiment. It appears at the top of the list, above the GuideLLM experiments from Module 3 and the `korean-llm-evaluation` experiment from Module 2.
 +
-// CAPTURE: MLflow accuracy metrics for Korean MCQ run
-image::img-kmcq-mlflow-metrics.png[Korean MCQ accuracy metrics in MLflow]
+image::kmcq/img-kmcq-mlflow-experiments-list.png[Experiments page listing the korean-haerae-eval experiment above the GuideLLM and korean-llm-evaluation experiments]
 
-. Optionally open exported Markdown/HTML from the summarize notebook for a human-readable table.
+. At the top of the experiment page, switch the view from *GenAI* to *Model training*. The experiment contains two runs:
 +
-// CAPTURE: summarize notebook HTML/Markdown report
-image::img-kmcq-summary-report.png[Korean MCQ summary report table]
+* `haerae-eval`, which EvalHub creates when the job is submitted. It stays in the *Running* state and has no metrics.
+* A run named after the job ID with the suffix `_0`, for example `8eb3ae4e-..._0`. The Korean MCQ adapter creates this run and logs the accuracy metrics to it.
++
+image::kmcq/img-kmcq-mlflow-model-training-runs.png[Model training view of the korean-haerae-eval experiment listing the haerae-eval run and the job ID run]
 
-Continue to Module 5 to run *multiple* benchmarks and performance together under one experiment name.
+. Click the run named after the job ID, then open the *Model metrics* tab. MLflow shows one chart per metric: `overall_accuracy`, `overall_score`, and the `category_accuracy` of each HAE-RAE category in the sample.
++
+image::kmcq/img-kmcq-mlflow-model-metrics.png[Model metrics tab of the HAE-RAE run showing charts for category accuracy, overall accuracy, and overall score]
+
+With a small `LIMIT`, only one or a few categories contain questions, and each accuracy value is based on very few answers. For example, 5 correct answers out of 5 produce an `overall_accuracy` of `100`. Treat these results as a check that the pipeline works, not as a reliable measure of the model's Korean ability.
+
+== Step 4.4: Generate a Summary Report
+
+The second notebook aggregates the result files exported in Step 4.2 and produces Markdown and HTML reports. This is useful when you compare several models or benchmarks.
+
+*Notebook path:* `{evalhub-lab-clone}/2_eval_hub_kmcq_benchmark/2_summarize_results.ipynb` ({evalhub-lab-repo}/blob/main/2_eval_hub_kmcq_benchmark/2_summarize_results.ipynb[view on GitHub,window=_blank])
+
+. Open `2_summarize_results.ipynb` and run the cells one at a time from the top.
+. The notebook loads the JSON files from `results/<model-name>/`, builds a benchmark-by-model accuracy table, and aggregates the KMMLU and CLIcK results by category and supercategory.
+. The last steps write `results/RESULTS.md` and generate an interactive HTML report at `results/report.html`. The *Step 7: Generate HTML Report* cell prints `Report generated: ../results/report.html` with the number of models and tasks included.
++
+.The summary notebook saves RESULTS.md and generates report.html
+image::kmcq/img-kmcq-generate-report-cell.png[Summary notebook output showing the accuracy table saved to RESULTS.md and the Step 7 cell generating report.html]
+
+. In the JupyterLab file browser, open `rhoai-evalhub-lab` > `results`. Click the refresh icon if `report.html` does not show a recent modification time, then open `report.html`.
+. Click *Trust HTML* at the top of the viewer. The report uses JavaScript to draw its charts, and JupyterLab runs the scripts only in trusted HTML. Until you trust the file, the chart sections, such as *Score Comparison*, stay empty.
++
+.Korean LLM Benchmark Report generated from your results
+image::kmcq/img-kmcq-summary-report.png[report.html generated from the participant's results, with Trust HTML highlighted and overall accuracy cards for each model]
++
+After you click *Trust HTML*, the button changes to *Distrust HTML* and the charts appear. The *Score Comparison* chart shows the accuracy of each model on each benchmark, and the *Detailed Results* table lists the same scores, with the best score for each benchmark highlighted:
++
+.Score Comparison chart and Detailed Results table after trusting the report
+image::kmcq/img-kmcq-summary-report-charts.png[Trusted report showing the Score Comparison bar chart by benchmark and model, and the Detailed Results table]
+
+The `results` folder already contains sample results for several other models, such as `glm-53-flash`, `gemma4-12b`, and `qwen3-14b`, from earlier evaluations by the lab authors. The report compares your model with them. Check that the *Generated* time at the top of the report is current and that your model, for example `redhataigemma-4-e4b-it`, appears among the models. The sample results were produced with many more questions, so a score based on a small `LIMIT` is not directly comparable with them. You can also open `RESULTS.md` for the same accuracy table in Markdown.
+
+NOTE: The report treats every folder in `results` as a model. Cards such as `guardrail` (results from the guardrails notebooks in Module 6) and `.ipynb_checkpoints` (a folder that JupyterLab creates automatically) show `0.0%` and are not models. You can ignore them.
+
+The report includes only accuracy jobs that report `overall_accuracy`. GuideLLM performance results from Module 3 are exported to `results/` but do not appear in the accuracy tables.
+
+Proceed to Module 5 to combine several accuracy benchmarks and a performance test in a single evaluation.
