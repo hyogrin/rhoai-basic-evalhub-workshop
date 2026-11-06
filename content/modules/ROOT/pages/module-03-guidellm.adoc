@@ -56,7 +56,7 @@ A *profile* defines how GuideLLM generates load. This module uses two profiles a
 
 | *Rate sweep*
 | `sweep`
-| Runs 10 stages of 120 seconds each, from one request at a time up to maximum throughput, revealing the rate at which latency starts to degrade. This is the longest job, at about 20 minutes.
+| Runs 4 stages of up to 20 seconds each, from one request at a time up to maximum throughput, revealing the rate at which latency starts to degrade. The number of stages is set by `SWEEP_STEPS` in the notebook's configuration cell. With the default of 4, the sweep takes about 2 minutes.
 
 | *Constant load*
 | `constant`
@@ -134,7 +134,7 @@ Use the table below to check each result. The notebook uses its own step numbers
 | *Step 4: Rate Sweep Test* (two cells)
 | Run
 | A sweep job ID, then `Job completed!` and the metrics for the sweep
-| About 20 minutes
+| About 2 minutes
 
 | *Step 5: Constant Load Test* (two cells)
 | Run
@@ -142,9 +142,7 @@ Use the table below to check each result. The notebook uses its own step numbers
 | About 2 to 3 minutes
 |===
 
-Each monitoring cell checks the job state every 10 seconds and prints the elapsed time. The quick baseline and constant load jobs each run for about 2 to 3 minutes: the load test itself lasts 120 seconds, plus a few seconds to start the job and report the results. The rate sweep runs for about 20 minutes because it runs 10 stages of 120 seconds each. Let each cell finish before running the next one; the jobs keep running in your namespace even while the cell is waiting. Run the jobs one after another, because running them at the same time skews the results.
-
-TIP: The sweep monitoring cell stops waiting after about 20 minutes, which is close to the sweep's run time. If the cell stops before printing `Job completed!`, the job is still running. Rerun only the monitoring cell, not the submit cell above it, to wait for the same job and print its metrics.
+Each monitoring cell checks the job state every 10 seconds and prints the elapsed time. The quick baseline and constant load jobs each run for about 2 to 3 minutes: the load test itself lasts 120 seconds, plus a few seconds to start the job and report the results. The rate sweep runs for about 2 minutes: 4 stages of up to 20 seconds each, plus the time to start the job and report the results. Let each cell finish before running the next one; the jobs keep running in your namespace even while the cell is waiting. Run the jobs one after another, because running them at the same time skews the results.
 
 NOTE: Wait for the sweep to complete before you start *Step 5: Constant Load Test*. If you run a cell while another cell is still running, Jupyter queues it, shown as `[*]`, and starts it only when the running cell finishes. Do not interrupt the sweep monitoring cell to start the constant load test early: both tests would then send load to the same model at the same time and skew each other's results.
 
@@ -181,12 +179,12 @@ NOTE: `MLflow Run: None` is expected. GuideLLM jobs do not currently log their m
 
 === Rate Sweep Results
 
-When the sweep finishes after about 20 minutes, its monitoring cell prints `Job completed!` and the sweep's metrics:
+When the sweep finishes after about 2 minutes, its monitoring cell prints `Job completed!` and the sweep's metrics:
 
 .Rate sweep completed, with its reported metrics
 image::guidellm/img-guidellm-sweep-completed.png[Notebook output showing the GuideLLM rate sweep job completed with its metrics]
 
-The sweep's `requests_per_second` and throughput values are much lower than the quick baseline's. This is expected: the metrics returned for the sweep summarize its first stage, which sends one request at a time, rather than all 10 stages. In this example, each request takes about 5.7 seconds (TTFT plus 128 output tokens at the inter-token latency), so a single stream completes about 0.17 requests per second. Use this stage as the best-case, single-user latency for your model.
+The sweep's `requests_per_second` and throughput values are much lower than the quick baseline's. This is expected: the metrics returned for the sweep summarize its first stage, which sends one request at a time, rather than all of its stages. In this example, each request takes about 5.7 seconds (TTFT plus 128 output tokens at the inter-token latency), so a single stream completes about 0.17 requests per second. Use this stage as the best-case, single-user latency for your model.
 
 === Constant Load Results
 
