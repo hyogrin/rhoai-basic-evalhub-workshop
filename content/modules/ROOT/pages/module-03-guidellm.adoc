@@ -3,93 +3,219 @@
 [#guidellm]
 = GuideLLM Performance Benchmark
 
-Accuracy alone does not make a model production-ready. This module measures *inference performance* -- TTFT, inter-token latency, throughput, and end-to-end latency -- using *GuideLLM* through the EvalHub SDK so results land in MLflow like any other evaluation job.
+In this module, you will measure how fast your model serves requests. You will run *GuideLLM*, a load-testing tool for LLM inference servers, through the same EvalHub client you used in Module 2, and compare the results in MLflow.
 
-== Learning Objectives
+By the end of this module, you will have:
 
-* Submit a GuideLLM job via `JobSubmissionRequest`
-* Understand constant / sweep style profiles at a high level
-* Locate performance metrics in the corresponding MLflow experiment
+* An understanding of the key inference performance metrics and load profiles
+* Three GuideLLM performance jobs run through EvalHub: a quick baseline, a rate sweep, and a constant load test
+* Performance metrics for each job recorded in MLflow
 
-== Exercise: Run the GuideLLM Notebook
+== Why Measure Performance?
 
-[IMPORTANT]
-====
-Open the notebook and *run all cells* end-to-end.
+A model that answers correctly is not production-ready if it answers too slowly or cannot handle the expected number of users. Accuracy and performance are independent release criteria:
 
-*Workbench path::*
-`{evalhub-lab-clone}/1_eval_hub_guidellm_benchmark/1_guidellm_benchmark.ipynb`
+* *User experience* depends on how quickly the first words appear and how smoothly the rest of the answer streams.
+* *Capacity planning* depends on how many requests the deployment can serve before latency degrades.
+* *Regression detection* depends on a repeatable baseline, so you can tell whether a new model version, runtime setting, or hardware profile made serving faster or slower.
 
-*GitHub::*
-{evalhub-lab-repo}/blob/main/1_eval_hub_guidellm_benchmark/1_guidellm_benchmark.ipynb
-====
+GuideLLM answers these questions by sending synthetic requests to your model endpoint at controlled rates and recording what happens.
 
-== Key Concept: One Client, One Job Shape
+== What GuideLLM Measures
 
-EvalHub treats GuideLLM as a *provider*. You still use the same client and job submission types as accuracy benchmarks:
+[cols="1,3",options="header"]
+|===
+| Metric | What it tells you
+
+| *Time to First Token (TTFT)*
+| How long a user waits before the first token of the answer arrives. This is the latency users notice most.
+
+| *Inter-Token Latency (ITL)*
+| The time between consecutive output tokens. Lower ITL means smoother streaming.
+
+| *End-to-End (E2E) Latency*
+| The total time from sending a request to receiving the complete response.
+
+| *Throughput*
+| How many output tokens per second, or requests per second, the deployment sustains.
+|===
+
+Latency metrics are usually reported as percentiles, such as p50 (median) and p99 (the slowest 1% of requests).
+
+== Load Profiles Used in This Module
+
+A *profile* defines how GuideLLM generates load. This module uses two profiles across three jobs:
+
+[cols="1,1,3",options="header"]
+|===
+| Job | Profile | Purpose
+
+| *Quick baseline*
+| `constant`
+| Sends 2 requests per second for 120 seconds to capture a first latency baseline.
+
+| *Rate sweep*
+| `sweep`
+| Runs 10 stages of 120 seconds each, from one request at a time up to maximum throughput, revealing the rate at which latency starts to degrade. This is the longest job, at about 20 minutes.
+
+| *Constant load*
+| `constant`
+| Sustains a fixed rate with a short warm-up to measure steady-state performance. In practice, you would set the rate based on the sweep results.
+|===
+
+Each request uses synthetic data with 256 prompt tokens and 128 output tokens, so results are comparable across runs. GuideLLM also supports other profiles, such as `throughput`, `concurrent`, and `poisson`, which you can explore after the workshop.
+
+== Key Concept: Same Client, Different Provider
+
+In Module 2, you submitted an accuracy job to the Korean MCQ provider. A performance job uses the same client and the same `JobSubmissionRequest` structure. Only the provider and its parameters change:
 
 [source,python,subs=none]
 ----
-from evalhub import (
-    SyncEvalHubClient,
-    BenchmarkConfig,
-    JobSubmissionRequest,
-    ExperimentConfig,
-)
-
-client = SyncEvalHubClient(
-    base_url=EVALHUB_URL,
-    auth_token=EVALHUB_AUTH_TOKEN,
-    insecure=True,
-    tenant=NAMESPACE,
-)
-
 quick_request = JobSubmissionRequest(
-    name=f"guidellm-quick-{MODEL_NAME}",
+    name=f"guidellm-quick-{MODEL_NAME}-{ts}",
     description=f"Quick performance baseline for {MODEL_NAME}",
     tags=["performance", "guidellm", MODEL_NAME],
-    model=model,  # ModelConfig from lab helpers
+    model=model,                         # model endpoint and API key Secret
     benchmarks=[
         BenchmarkConfig(
-            id="constant",
-            provider_id="guidellm",
+            id="constant",               # GuideLLM profile
+            provider_id="guidellm",      # built-in EvalHub provider
             parameters={
                 "profile": "constant",
-                "rate": 2,
-                "max_seconds": 120,
+                "rate": 2,               # requests per second
+                "max_seconds": 120,      # test duration
                 "data": "prompt_tokens=256,output_tokens=128",
                 "request_type": "chat_completions",
             },
         )
     ],
-    experiment=ExperimentConfig(name=f"guidellm-quick-{MODEL_NAME}"),
+    experiment=ExperimentConfig(name=f"guidellm-quick-{MODEL_NAME}-{ts}"),
 )
 
-job = client.jobs.submit(quick_request)
-print(job.id, job.state.value)
+quick_job = client.jobs.submit(quick_request)
 ----
 
-The notebook also walks through sweep and constant-load variants. You do not need to retype them here -- run the notebook cells and watch job state until completion.
+EvalHub runs GuideLLM as a job in your namespace, reports its progress, and records the metrics in MLflow, exactly as it did for the accuracy smoke test.
 
-// CAPTURE: notebook showing GuideLLM job id + completed state
-image::img-guidellm-notebook-job.png[GuideLLM evaluation job completed in the notebook]
+== Step 3.1: Open the GuideLLM Notebook
 
-== Verify in MLflow
+Before you start, make sure you have completed Module 2. This module uses the same `.env` file and the `oc` login from Step 2.5 of Module 2.
 
-. Open *Experiments* in the {productname-short} / MLflow UI.
-. Select the experiment name created by the job (for example `guidellm-quick-...` or the name printed by the notebook).
+*Notebook path:* `{evalhub-lab-clone}/1_eval_hub_guidellm_benchmark/1_guidellm_benchmark.ipynb` ({evalhub-lab-repo}/blob/main/1_eval_hub_guidellm_benchmark/1_guidellm_benchmark.ipynb[view on GitHub,window=_blank])
+
+. In the JupyterLab file browser, open `rhoai-evalhub-lab` > `1_eval_hub_guidellm_benchmark` > `1_guidellm_benchmark.ipynb`.
+. Run the cells one at a time from the top by selecting each cell and pressing *Shift+Enter*.
+
+NOTE: If you changed `.env` since Module 2, restart the notebook kernel (*Kernel* > *Restart Kernel*) before running the first cell, so that the new values are loaded.
+
+== Step 3.2: Run the Performance Jobs
+
+Use the table below to check each result. The notebook uses its own step numbers, which are not the same as the step numbers in this module.
+
+[cols="2,1,3,1",options="header"]
+|===
+| Notebook cell | Action | Expected result | Approximate time
+
+| *Step 1: Configuration*
+| Run
+| Your namespace, model name, GuideLLM endpoint ending in `/v1`, and `Using external EvalHub URL: ...`
+| Seconds
+
+| *Step 2: Initialize EvalHub Client*
+| Run
+| `Model auth secret 'model-api-key' ready`, `GuideLLM provider registered: True`, and the list of GuideLLM benchmarks
+| Seconds
+
+| *Step 3: Quick Performance Baseline* (two cells)
+| Run
+| A job ID with state `pending`, then the elapsed time while the job is `running`, then `Job completed!` and five performance metrics
+| About 2 to 3 minutes
+
+| *Step 4: Rate Sweep Test* (two cells)
+| Run
+| A sweep job ID, then `Job completed!` and the metrics for the sweep
+| About 20 minutes
+
+| *Step 5: Constant Load Test* (two cells)
+| Run
+| A constant load job ID, then `Job completed!` and the steady-state metrics
+| About 2 to 3 minutes
+|===
+
+Each monitoring cell checks the job state every 10 seconds and prints the elapsed time. The quick baseline and constant load jobs each run for about 2 to 3 minutes: the load test itself lasts 120 seconds, plus a few seconds to start the job and report the results. The rate sweep runs for about 20 minutes because it runs 10 stages of 120 seconds each. Let each cell finish before running the next one; the jobs keep running in your namespace even while the cell is waiting. Run the jobs one after another, because running them at the same time skews the results.
+
+TIP: The sweep monitoring cell stops waiting after about 20 minutes, which is close to the sweep's run time. If the cell stops before printing `Job completed!`, the job is still running. Rerun only the monitoring cell, not the submit cell above it, to wait for the same job and print its metrics.
+
+NOTE: Wait for the sweep to complete before you start *Step 5: Constant Load Test*. If you run a cell while another cell is still running, Jupyter queues it, shown as `[*]`, and starts it only when the running cell finishes. Do not interrupt the sweep monitoring cell to start the constant load test early: both tests would then send load to the same model at the same time and skew each other's results.
+
+NOTE: Load tests send many requests in a short time. If your model API key has a low token rate limit, some requests can be throttled with HTTP `429`, and the latency results then include the throttling. If you see many failed requests in the metrics, ask your instructor about the rate limit for your subscription.
+
+=== Quick Baseline Results
+
+When the quick baseline finishes, the monitoring cell prints the job's metrics:
+
+.Quick baseline completed, with its performance metrics
+image::guidellm/img-guidellm-quick-baseline-completed.png[Notebook output showing the GuideLLM quick baseline job completed with its performance metrics]
+
+[cols="1,3",options="header"]
+|===
+| Printed metric | Meaning
+
+| `mean_ttft_ms`
+| Average time to first token, in milliseconds
+
+| `mean_itl_ms`
+| Average inter-token latency, in milliseconds
+
+| `output_tokens_per_second`
+| Output tokens generated per second across all requests
+
+| `prompt_tokens_per_second`
+| Prompt tokens processed per second across all requests
+
+| `requests_per_second`
+| Requests completed per second. At a target rate of 2, a value close to 2 means the deployment kept up with the load.
+|===
+
+NOTE: `MLflow Run: None` is expected. GuideLLM jobs do not currently log their metrics to an MLflow run, so the notebook output is where you read the performance results.
+
+=== Rate Sweep Results
+
+When the sweep finishes after about 20 minutes, its monitoring cell prints `Job completed!` and the sweep's metrics:
+
+.Rate sweep completed, with its reported metrics
+image::guidellm/img-guidellm-sweep-completed.png[Notebook output showing the GuideLLM rate sweep job completed with its metrics]
+
+The sweep's `requests_per_second` and throughput values are much lower than the quick baseline's. This is expected: the metrics returned for the sweep summarize its first stage, which sends one request at a time, rather than all 10 stages. In this example, each request takes about 5.7 seconds (TTFT plus 128 output tokens at the inter-token latency), so a single stream completes about 0.17 requests per second. Use this stage as the best-case, single-user latency for your model.
+
+=== Constant Load Results
+
+When the constant load test finishes, its monitoring cell prints `Job completed!` and the steady-state metrics:
+
+.Constant load test completed, with its steady-state metrics
+image::guidellm/img-guidellm-constant-load-completed.png[Notebook output showing the GuideLLM constant load job completed with its steady-state metrics]
+
+The constant load test uses the same rate and duration as the quick baseline, plus a short warm-up that is excluded from the results. Its `requests_per_second` is close to the target of 2, which confirms that the deployment sustains this load. Compare its TTFT and inter-token latency with the quick baseline to see the effect of the warm-up.
+
+== Step 3.3: View the Performance Results in MLflow
+
+Each GuideLLM job creates its own MLflow experiment, named after the job type, the model, and a timestamp from when you ran *Step 3* of the notebook. Unlike the accuracy runs in Module 2, GuideLLM runs do not log metric charts. EvalHub stores the results in an *evaluation card* file attached to each run.
+
+. In the {productname-short} dashboard, expand *Develop & train* in the left navigation and click *Experiments*.
+. Select your project from the *Project* drop-down.
+. After a full notebook run, three GuideLLM experiments appear in the list: `guidellm-quick-...`, `guidellm-sweep-...`, and `guidellm-constant-...`, all with the same timestamp. The `korean-llm-evaluation` experiment from Module 2 is also listed. To show only the GuideLLM experiments, search for `guidellm`.
 +
-// CAPTURE: MLflow experiment selection for GuideLLM
-image::img-guidellm-mlflow-experiment.png[Selecting the GuideLLM experiment in MLflow]
+image::guidellm/img-guidellm-experiments-list.png[Experiments page for the user3 project listing the three GuideLLM experiments and the korean-llm-evaluation experiment]
 
-. Inspect logged metrics such as output tokens/sec, request rate, and latency percentiles.
+. Click the `guidellm-quick-...` experiment. At the top of the experiment page, switch the view from *GenAI* to *Model training* to list its run.
 +
-// CAPTURE: MLflow run metrics for performance
-image::img-guidellm-mlflow-metrics.png[GuideLLM performance metrics in an MLflow run]
+image::guidellm/img-guidellm-mlflow-model-training-runs.png[GuideLLM quick experiment in the Model training view, listing its run]
+. Click the run, open the *Artifacts* tab, and select `evaluation-card.json`. The top of the card shows the job parameters under `context` > `benchmarks`, such as the profile, rate, duration, and token sizes. Scroll down to the `results` section to find the performance metrics under `benchmarks` > `metrics`.
++
+image::guidellm/img-guidellm-mlflow-evaluation-card.png[Artifacts tab of the GuideLLM run showing evaluation-card.json with the job parameters]
 
-[NOTE]
-====
-Exact metric names depend on the GuideLLM profile and EvalHub version. Use the notebook’s printed summary plus the MLflow run page as the source of truth.
-====
+NOTE: The GuideLLM run shows the status *Running* and an empty metrics view even after the job has completed. This is expected: the metrics are in `evaluation-card.json` and in the notebook output, which show the same values.
 
-When performance jobs succeed, continue to Module 4 for accuracy benchmarks with the same SDK pattern.
+Compare the sweep's single-user latency with the quick baseline and constant load results at 2 requests per second. In this example, the constant load test's TTFT (about 175 ms) is almost the same as the single-user TTFT (about 173 ms), so the deployment handles 2 requests per second without slowing individual requests down. The quick baseline's higher TTFT (about 199 ms) comes from the first requests of a test without warm-up, which is why the constant load test adds a warm-up phase.
+
+Proceed to Module 4 to measure your model's accuracy on Korean multiple-choice benchmarks with the same EvalHub client.
