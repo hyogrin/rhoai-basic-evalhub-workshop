@@ -16,40 +16,6 @@ By the end of this module, you will have:
 Your instructor has already deployed EvalHub, MLflow, and the model, and has enabled your namespace for EvalHub jobs. You do not need to deploy or configure any cluster services in this module.
 ====
 
-[#instructor-tenant-setup]
-.Instructor preparation: enable EvalHub for the participant namespaces
-[%collapsible]
-====
-Complete this once after deploying EvalHub and creating the participant projects and workbenches, before participants begin Step 2.1. Use a terminal logged in to OpenShift as the workshop cluster administrator.
-
-Run the tenant setup script:
-
-[source,bash,role="execute"]
-----
-(
-    set -o pipefail
-    curl -fsSL https://raw.githubusercontent.com/hyogrin/rhoai-basic-evalhub-workshop/refs/heads/main/scripts/setup-evalhub-tenant.sh | bash
-)
-----
-
-With no arguments, the script reads the usernames from `KeycloakRealmImport/sso` in the `keycloak` namespace and excludes `admin`, matching the workshop provisioning scripts. Each username must match an existing participant project, such as `user1` or `user2`. Set `KC_NAMESPACE` and `KC_REALM_IMPORT_NAME` if your environment uses different Keycloak resource names.
-
-The script prepares the EvalHub RoleBindings, job ServiceAccount, and service CA ConfigMap in each project. It preserves the existing MLflow workspace and artifact storage settings. No participant passwords or model API keys are needed.
-
-Confirm that the script reports `Namespace '<namespace>' is ready for EvalHub jobs` for every participant. If a project is missing or a permission check fails, correct the problem and rerun the script before starting the workshop. It is safe to rerun.
-
-To prepare selected projects from a local clone of the workshop repository, pass their names explicitly or set `WORKSHOP_USERS`:
-
-[source,bash,role="execute"]
-----
-bash scripts/setup-evalhub-tenant.sh user1 user2
-# Alternative: use the same override as the other workshop provisioning scripts.
-WORKSHOP_USERS=user1,user2 bash scripts/setup-evalhub-tenant.sh
-----
-
-You can review the https://github.com/hyogrin/rhoai-basic-evalhub-workshop/blob/main/scripts/setup-evalhub-tenant.sh[tenant setup script source,window=_blank] before running it. Participants continue with Step 2.1 after this preparation is complete.
-====
-
 == Two Terminals, Two Purposes
 
 This module uses two different terminals. Keep them apart, because each one runs in a different place:
@@ -383,8 +349,6 @@ image::setup/img-experiments-evaluation.png[Evaluation runs view of the korean-l
 . To compare the metrics visually, click the chart icon above the run list. MLflow shows one chart per logged metric: `overall_accuracy`, `category_accuracy`, `supercategory_accuracy`, and `overall_score`. In this example, the model answered 85% of the 20 smoke-test questions correctly.
 +
 image::setup/img-evaluation-graph-results.png[Chart view of the korean-llm-evaluation run showing bar charts for overall, category, and supercategory accuracy and the overall score]
-
-If the run is listed with its metrics, your workbench, EvalHub, MLflow, and model connections are all working.
 
 == Key Concept: One Client for Every Evaluation
 
