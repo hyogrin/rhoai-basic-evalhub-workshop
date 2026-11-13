@@ -84,7 +84,7 @@ perf_request = JobSubmissionRequest(
 
 == 단계 5.1: 통합 벤치마크 노트북 열기
 
-시작하기 전에 모듈 2부터 모듈 4까지 완료했는지 확인합니다. 이 모듈은 동일한 `.env` 파일, 모듈 2의 단계 2.5에서 수행한 `oc` 로그인, 모듈 2에서 등록한 Korean MCQ 프로바이더를 사용합니다.
+시작하기 전에 모듈 2부터 모듈 4까지 완료했는지 확인합니다. 이 모듈은 동일한 `.env` 파일, 모듈 2의 단계 2.6에서 수행한 `oc` 로그인, 모듈 2에서 등록한 Korean MCQ 프로바이더를 사용합니다.
 
 *노트북 경로:* `{evalhub-lab-clone}/3_eval_hub_unified_benchmark/1_unified_benchmark.ipynb` ({evalhub-lab-repo}/blob/main/3_eval_hub_unified_benchmark/1_unified_benchmark.ipynb[GitHub에서 보기,window=_blank])
 

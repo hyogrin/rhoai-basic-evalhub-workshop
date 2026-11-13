@@ -84,7 +84,7 @@ A single job can also contain several benchmarks in its `benchmarks` list. The n
 
 == Step 5.1: Open the Unified Benchmark Notebook
 
-Before you start, make sure you have completed Modules 2 to 4. This module uses the same `.env` file, the `oc` login from Step 2.5 of Module 2, and the Korean MCQ provider registered in Module 2.
+Before you start, make sure you have completed Modules 2 to 4. This module uses the same `.env` file, the `oc` login from Step 2.6 of Module 2, and the Korean MCQ provider registered in Module 2.
 
 *Notebook path:* `{evalhub-lab-clone}/3_eval_hub_unified_benchmark/1_unified_benchmark.ipynb` ({evalhub-lab-repo}/blob/main/3_eval_hub_unified_benchmark/1_unified_benchmark.ipynb[view on GitHub,window=_blank])
 

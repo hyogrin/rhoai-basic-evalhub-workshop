@@ -96,7 +96,7 @@ Setting `temperature` to `0.0` makes the model's answers as deterministic as pos
 
 == Step 4.1: Open the Korean MCQ Notebook
 
-Before you start, make sure you have completed Module 2. This module uses the same `.env` file, the `oc` login from Step 2.5 of Module 2, and the Korean MCQ provider registered by the setup notebook.
+Before you start, make sure you have completed Module 2. This module uses the same `.env` file, the `oc` login from Step 2.6 of Module 2, and the Korean MCQ provider registered by the setup notebook.
 
 *Notebook path:* `{evalhub-lab-clone}/2_eval_hub_kmcq_benchmark/1_kmcq_benchmark.ipynb` ({evalhub-lab-repo}/blob/main/2_eval_hub_kmcq_benchmark/1_kmcq_benchmark.ipynb[view on GitHub,window=_blank])
 

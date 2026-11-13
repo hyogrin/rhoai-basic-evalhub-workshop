@@ -99,7 +99,7 @@ EvalHub runs GuideLLM as a job in your namespace, reports its progress, and reco
 
 == Step 3.1: Open the GuideLLM Notebook
 
-Before you start, make sure you have completed Module 2. This module uses the same `.env` file and the `oc` login from Step 2.5 of Module 2.
+Before you start, make sure you have completed Module 2. This module uses the same `.env` file and the `oc` login from Step 2.6 of Module 2.
 
 *Notebook path:* `{evalhub-lab-clone}/1_eval_hub_guidellm_benchmark/1_guidellm_benchmark.ipynb` ({evalhub-lab-repo}/blob/main/1_eval_hub_guidellm_benchmark/1_guidellm_benchmark.ipynb[view on GitHub,window=_blank])
 
