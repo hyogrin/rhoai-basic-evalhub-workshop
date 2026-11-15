@@ -3,18 +3,17 @@
 [#setup]
 = Set Up EvalHub and MLflow
 
-In this module, you will connect your workbench to the shared EvalHub and MLflow services and to the model you will evaluate. You will enable your project for EvalHub and generate your connection settings in the {ocp-short} Web Terminal, save the settings in the lab repository on your workbench, and then run the setup notebook to confirm that everything works end to end.
+In this module, you will connect your workbench to the shared EvalHub and MLflow services and to the model you will evaluate. You will generate your connection settings in the {ocp-short} Web Terminal, save them in the lab repository on your workbench, and then run the setup notebook to confirm that everything works end to end.
 
 By the end of this module, you will have:
 
-* Your project enabled to run EvalHub evaluation jobs
 * A `.env` file containing your model, EvalHub, and MLflow connection settings
 * The lab repository cloned into your workbench, with `oc` logged in as your user
 * A verified EvalHub connection and a first evaluation run recorded in MLflow
 
 [NOTE]
 ====
-Your instructor has already deployed EvalHub, MLflow, and the model. You do not need to deploy any cluster services in this module. You only configure your own project.
+Your instructor has already deployed EvalHub, MLflow, and the model, and has enabled your namespace for EvalHub jobs. You do not need to deploy or configure any cluster services in this module.
 ====
 
 == Two Terminals, Two Purposes
@@ -27,34 +26,16 @@ This module uses two different terminals. Keep them apart, because each one runs
 
 | *Web Terminal*
 | {ocp-short} console, *>_* icon in the top-right masthead
-| Steps 2.1 and 2.2: enable your project for EvalHub and generate your connection settings
+| Step 2.1: generate your connection settings
 
 | *Workbench terminal*
 | JupyterLab in your workbench, *Launcher* > *Terminal*
-| Steps 2.4 to 2.6: clone the lab, create `.env`, and log in with `oc`
+| Steps 2.3 to 2.5: clone the lab, create `.env`, and log in with `oc`
 |===
 
-== Step 2.1: Enable Your Project for EvalHub
+== Step 2.1: Generate Your Connection Settings
 
-EvalHub is a shared service that runs in the `redhat-ods-applications` namespace, but it runs your evaluation jobs in your own project. Before it can do that, your project needs a few permissions and settings. A tenant setup script creates them for you.
-
-The script creates the following resources in your project only:
-
-[cols="1,3",options="header"]
-|===
-| Resource | Why it is needed
-
-| *RoleBindings for the EvalHub service*
-| Allow EvalHub to create MLflow experiments, evaluation jobs, per-job ConfigMaps, and the Secret that holds your model API key in your project
-
-| *A ServiceAccount for evaluation jobs*
-| `evalhub-redhat-ods-applications-job`, the identity that evaluation job pods run as, with permission to report progress to EvalHub and log results to MLflow
-
-| *ConfigMap `evalhub-service-ca`*
-| Receives the cluster's service CA certificate automatically, so that job pods can connect securely to EvalHub and MLflow
-|===
-
-The script then verifies each permission and prints `[OK]` for each check. It is safe to run more than once. Without these resources, jobs that you submit in the following steps fail or never report results.
+A setup script asks you four questions about your model, discovers the EvalHub and MLflow connection details for you, and prints seven settings ready to copy. The script only reads cluster information; it does not change anything.
 
 . In the {ocp-short} console, click the *>_* icon in the top-right masthead. The Web Terminal opens at the bottom of the page.
 +
@@ -62,34 +43,7 @@ image::setup/img-open-web-terminal.png[OpenShift console masthead with the Web T
 +
 The terminal starts in the `openshift-terminal` project. This is expected; it does not need to match your namespace.
 
-. Run the tenant setup script:
-+
-[source,bash,role="execute"]
-----
-(
-    set -o pipefail
-    curl -fsSL https://raw.githubusercontent.com/hyogrin/rhoai-basic-evalhub-workshop/refs/heads/main/scripts/setup-evalhub-tenant.sh | bash
-)
-----
-+
-You can review the https://github.com/hyogrin/rhoai-basic-evalhub-workshop/blob/main/scripts/setup-evalhub-tenant.sh[tenant setup script source,window=_blank] before running it.
-
-. When prompted for `Assigned namespace`, enter your assigned namespace, for example `user1`, and press *Enter*. If your namespace matches your user name, which is shown in brackets, you can press *Enter* to accept it.
-
-. Check the output. The script succeeded when it ends with:
-+
-[source,text]
-----
-[OK]   Namespace 'user1' is ready for EvalHub evaluation jobs.
-----
-+
-Each permission check before this line shows `[OK]`. If a permission check or the `evalhub-service-ca` check shows `[WARN]`, wait a minute and run the script again. If the script reports `You cannot create RoleBindings` or `NetworkPolicy evalhub-allow-tenant-jobs is missing`, ask your instructor: these are cluster-level settings that you cannot fix yourself.
-
-== Step 2.2: Generate Your Connection Settings
-
-A setup script asks you four questions about your model, discovers the EvalHub and MLflow connection details for you, and prints seven settings ready to copy. The script only reads cluster information; it does not change anything.
-
-. In the same Web Terminal, run the setup script:
+. Run the setup script:
 +
 [source,bash,role="execute"]
 ----
@@ -154,7 +108,7 @@ MLFLOW_TRACKING_URI='https://mlflow.redhat-ods-applications.svc:8443/mlflow'
 # END .env
 ----
 +
-Select the seven lines from `NAMESPACE=` through `MLFLOW_TRACKING_URI=` and copy them. You will paste them into your workbench in Step 2.5. Your values will differ from the example.
+Select the seven lines from `NAMESPACE=` through `MLFLOW_TRACKING_URI=` and copy them. You will paste them into your workbench in Step 2.4. Your values will differ from the example.
 
 WARNING: These lines contain your model API key and your OpenShift token. Do not share them or commit them to Git.
 
@@ -181,7 +135,7 @@ Avoid these common mistakes when answering the prompts:
 | `Bearer sk-oai-****************`
 |===
 
-== Step 2.3: Open Your Workbench
+== Step 2.2: Open Your Workbench
 
 Switch from the Web Terminal to your workbench, where the lab notebooks run.
 
@@ -198,7 +152,7 @@ image::setup/img-navigate-to-workbench.png[Workbenches tab of the user1 project 
 
 TIP: If the workbench does not load, check its status under *Projects* > your project > *Workbenches*. If it shows *Stopped*, click the toggle next to it and wait until the status is *Ready*.
 
-== Step 2.4: Clone the Lab and Install Dependencies
+== Step 2.3: Clone the Lab and Install Dependencies
 
 . In the JupyterLab *Launcher*, click the *Terminal* tile under *Other*. You can also click *File* > *New* > *Terminal*.
 +
@@ -233,7 +187,7 @@ The `-q` (quiet) flag hides progress output. The installation succeeded if the p
 +
 image::setup/img-workbench-install-requirements.png[Workbench terminal after installing the lab requirements]
 
-== Step 2.5: Create the `.env` File
+== Step 2.4: Create the `.env` File
 
 The lab notebooks read their connection settings from a `.env` file at the root of the lab repository. The same file is used in Modules 2 to 5.
 
@@ -244,7 +198,7 @@ The lab notebooks read their connection settings from a `.env` file at the root 
 cd ~/rhoai-evalhub-lab && pwd
 ----
 +
-The output must end with `/rhoai-evalhub-lab`. If you see `No such file or directory`, the repository was not cloned; return to Step 2.4.
+The output must end with `/rhoai-evalhub-lab`. If you see `No such file or directory`, the repository was not cloned; return to Step 2.3.
 
 . Open a new `.env` file:
 +
@@ -255,14 +209,14 @@ vi .env
 
 . If the file already contains text, press `Esc` and type `ggdG` to clear it.
 . Press `i` to enter insert mode.
-. Paste the seven lines you copied in Step 2.2.
+. Paste the seven lines you copied in Step 2.1.
 . Press `Esc`, type `:wq`, and press *Enter* to save and exit.
 
 The notebooks load `.env` with `python-dotenv`, so you do not need to run `source .env`.
 
 IMPORTANT: Keep `.env` in the `rhoai-evalhub-lab` directory, not in a notebook subdirectory. Each notebook loads `../.env` relative to its own folder.
 
-== Step 2.6: Log In to OpenShift from the Workbench
+== Step 2.5: Log In to OpenShift from the Workbench
 
 Some setup cells run `oc` commands inside the workbench, for example to build the Korean MCQ evaluator image and to store your model API key as a Secret. By default, `oc` in the workbench runs as the workbench's own service account, which cannot create these resources. Log in as your user so that those cells succeed.
 
@@ -292,9 +246,9 @@ The `Using insecure TLS client config` warning is expected and can be ignored.
 
 The notebooks share this login, so you do not need to restart the notebook kernel.
 
-NOTE: Your OpenShift token expires after a period of time, typically about a day. If notebook calls later return HTTP `401`, rerun the setup script from Step 2.2, replace the contents of `.env`, repeat this step, and restart the notebook kernel.
+NOTE: Your OpenShift token expires after a period of time, typically about a day. If notebook calls later return HTTP `401`, rerun the setup script from Step 2.1, replace the contents of `.env`, repeat this step, and restart the notebook kernel.
 
-== Step 2.7: Run the Setup Notebook
+== Step 2.6: Run the Setup Notebook
 
 The setup notebook loads your configuration, connects to EvalHub, registers the Korean MCQ evaluator, and submits a short smoke-test evaluation.
 
