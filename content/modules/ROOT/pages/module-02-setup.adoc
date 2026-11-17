@@ -350,6 +350,9 @@ image::setup/img-experiments-evaluation.png[Evaluation runs view of the korean-l
 +
 image::setup/img-evaluation-graph-results.png[Chart view of the korean-llm-evaluation run showing bar charts for overall, category, and supercategory accuracy and the overall score]
 
+[#deleted-experiments]
+IMPORTANT: Do not delete an entire experiment if you plan to rerun the notebook. MLflow keeps the name of a deleted experiment reserved, so a new job that uses the same name fails with `experiment "korean-llm-evaluation" is not active after create`. If this happens, change the experiment name in the notebook's *Step 6: Configure MLflow Experiment Tracking* cell, for example to `korean-llm-evaluation-2`, and rerun the notebook from that cell. Deleting individual runs inside an experiment is safe. Modules 3 and 5 add a timestamp to their experiment names, so rerunning those notebooks creates new experiments automatically.
+
 == Key Concept: One Client for Every Evaluation
 
 Every hands-on module uses the same EvalHub SDK client. It needs only the EvalHub URL, your OpenShift token, and your namespace, which EvalHub treats as your *tenant*:

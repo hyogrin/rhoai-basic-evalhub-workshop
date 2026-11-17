@@ -194,6 +194,8 @@ image::kmcq/img-kmcq-mlflow-model-metrics.png[카테고리 정확도, 전체 정
 
 `LIMIT`이 작으면 문항이 하나 또는 몇 개의 카테고리에만 포함되며, 각 정확도 값은 매우 적은 답변을 기반으로 합니다. 예를 들어 5문항 중 5문항을 맞히면 `overall_accuracy`는 `100`이 됩니다. 이 결과는 모델의 한국어 능력을 신뢰성 있게 측정한 것이 아니라 파이프라인이 동작하는지 확인하는 용도로 활용합니다.
 
+NOTE: 실험 이름 `korean-haerae-eval`은 고정되어 있습니다. 이 실험을 삭제한 후 노트북을 다시 실행하면 작업이 `experiment "korean-haerae-eval" is not active after create` 오류와 함께 실패합니다. *1-A: Submit the Job* 셀의 `ExperimentConfig`에서 이름을 `korean-haerae-eval-2`와 같이 변경한 후 해당 셀을 다시 실행합니다. 자세한 내용은 xref:kr/module-02-setup.adoc#deleted-experiments-kr[모듈 2]를 참조하십시오.
+
 == 단계 4.4: 요약 보고서 생성
 
 두 번째 노트북은 단계 4.2에서 내보낸 결과 파일을 집계하여 Markdown 및 HTML 보고서를 생성합니다. 여러 모델이나 벤치마크를 비교할 때 유용합니다.

@@ -194,6 +194,8 @@ image::kmcq/img-kmcq-mlflow-model-metrics.png[Model metrics tab of the HAE-RAE r
 
 With a small `LIMIT`, only one or a few categories contain questions, and each accuracy value is based on very few answers. For example, 5 correct answers out of 5 produce an `overall_accuracy` of `100`. Treat these results as a check that the pipeline works, not as a reliable measure of the model's Korean ability.
 
+NOTE: The experiment name `korean-haerae-eval` is fixed. If you delete this experiment and rerun the notebook, the job fails with `experiment "korean-haerae-eval" is not active after create`. Change the name in the `ExperimentConfig` of the *1-A: Submit the Job* cell, for example to `korean-haerae-eval-2`, and rerun that cell. For details, see xref:module-02-setup.adoc#deleted-experiments[Module 2].
+
 == Step 4.4: Generate a Summary Report
 
 The second notebook aggregates the result files exported in Step 4.2 and produces Markdown and HTML reports. This is useful when you compare several models or benchmarks.

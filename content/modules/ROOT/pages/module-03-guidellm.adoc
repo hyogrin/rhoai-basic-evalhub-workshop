@@ -214,6 +214,8 @@ image::guidellm/img-guidellm-mlflow-evaluation-card.png[Artifacts tab of the Gui
 
 NOTE: The GuideLLM run shows the status *Running* and an empty metrics view even after the job has completed. This is expected: the metrics are in `evaluation-card.json` and in the notebook output, which show the same values.
 
+NOTE: If you delete a GuideLLM experiment and want to rerun the tests, rerun *Step 3: Quick Performance Baseline* first. It sets a new timestamp, so the jobs create new experiments. If you rerun only a later submit cell, it reuses the deleted experiment's name and the job fails. For details, see xref:module-02-setup.adoc#deleted-experiments[Module 2].
+
 Compare the sweep's single-user latency with the quick baseline and constant load results at 2 requests per second. In this example, the constant load test's TTFT (about 175 ms) is almost the same as the single-user TTFT (about 173 ms), so the deployment handles 2 requests per second without slowing individual requests down. The quick baseline's higher TTFT (about 199 ms) comes from the first requests of a test without warm-up, which is why the constant load test adds a warm-up phase.
 
 Proceed to Module 4 to measure your model's accuracy on Korean multiple-choice benchmarks with the same EvalHub client.

@@ -350,6 +350,9 @@ image::setup/img-experiments-evaluation.png[완료된 실행과 정확도 메트
 +
 image::setup/img-evaluation-graph-results.png[전체, 카테고리, 상위 카테고리 정확도와 전체 점수의 막대 차트를 보여주는 korean-llm-evaluation 실행의 차트 보기]
 
+[#deleted-experiments-kr]
+IMPORTANT: 노트북을 다시 실행할 계획이라면 실험 전체를 삭제하지 마십시오. MLflow는 삭제된 실험의 이름을 계속 예약해 두므로, 같은 이름을 사용하는 새 작업은 `experiment "korean-llm-evaluation" is not active after create` 오류와 함께 실패합니다. 이 경우 노트북의 *Step 6: Configure MLflow Experiment Tracking* 셀에서 실험 이름을 `korean-llm-evaluation-2`와 같이 변경한 후, 해당 셀부터 노트북을 다시 실행합니다. 실험 안의 개별 실행을 삭제하는 것은 문제가 없습니다. 모듈 3과 5는 실험 이름에 타임스탬프를 추가하므로, 해당 노트북을 다시 실행하면 새 실험이 자동으로 생성됩니다.
+
 == 핵심 개념: 모든 평가에 사용하는 하나의 클라이언트
 
 모든 실습 모듈은 동일한 EvalHub SDK 클라이언트를 사용합니다. 이 클라이언트에는 EvalHub URL, OpenShift 토큰, 그리고 EvalHub가 *테넌트*로 취급하는 네임스페이스만 필요합니다:
