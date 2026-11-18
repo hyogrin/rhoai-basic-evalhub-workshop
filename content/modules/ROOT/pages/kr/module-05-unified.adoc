@@ -10,6 +10,7 @@
 * 릴리스 결정에 동일한 모델 버전의 정확도 및 성능 결과가 모두 필요한 이유에 대한 이해
 * 하나의 MLflow 실험에 기록된 5개의 정확도 작업과 1개의 성능 작업
 * 노트북과 MLflow에서 수행한 전체 결과 비교
+* 이전 모듈에서 만든 두 개의 개별 실험에 대한 MLflow 비교
 
 == 통합 평가가 필요한 이유
 
@@ -179,5 +180,46 @@ image::unified/img-unified-mlflow-model-training-runs.png[5개 정확도 작업�
 image::unified/img-unified-mlflow-charts.png[정확도 실행 간 카테고리 정확도, 전체 정확도, 전체 점수를 비교하는 full-eval 실험의 차트 보기]
 
 TIP: 나중에 다른 모델이나 새 버전을 평가할 때는 벤치마크 ID, `LIMIT`, GuideLLM 프로파일을 동일하게 유지합니다. MLflow 비교는 평가 설정이 일치할 때만 의미가 있습니다.
+
+== 단계 5.4: MLflow에서 실험 간 비교
+
+단계 5.3에서는 하나의 실험 안에서 실행을 비교했습니다. MLflow에서는 서로 다른 실험의 실행도 비교할 수 있습니다. 이 단계에서는 이전 모듈에서 만든 두 개의 Korean MCQ 실험을 비교합니다:
+
+[cols="1,1,2",options="header"]
+|===
+| 실험 | 생성한 모듈 | 실행한 내용
+
+| `korean-llm-evaluation`
+| 모듈 2
+| 스모크 테스트: CLIcK 20문항
+
+| `korean-haerae-eval`
+| 모듈 4
+| 노트북에서 설정한 `LIMIT`으로 실행한 HAE-RAE 정확도 작업
+|===
+
+. {productname-short} 대시보드의 왼쪽 탐색 메뉴에서 *Develop & train*을 펼치고 *Experiments*를 클릭합니다.
+. *Project* 드롭다운에서 본인의 프로젝트를 선택합니다.
+. 실험 목록에서 `korean-haerae-eval`과 `korean-llm-evaluation` 옆의 확인란을 선택한 다음, 목록 위의 *Compare*를 클릭합니다.
++
+image::unified/img-compare-experiments.png[korean-haerae-eval과 korean-llm-evaluation 확인란이 선택되고 Compare 버튼이 강조 표시된 실험 목록]
+
+. *Displaying Runs from 2 Experiments* 페이지가 열리고, 두 실험의 실행이 하나의 실행 목록에 표시됩니다:
++
+* 작업 ID에 `_0` 접미사가 붙은 이름의 실행에 정확도 메트릭이 포함되어 있으며, 각 실험마다 하나씩 있습니다. 아래 예시에서 `97a2cc5c-..._0`은 모듈 2의 스모크 테스트이고, `8eb3ae4e-..._0`은 모듈 4의 HAE-RAE 작업입니다.
+* `haerae-eval`은 모듈 4의 작업이 제출될 때 EvalHub가 생성한 실행이며, 메트릭이 없습니다.
+
+. 실행 목록 위의 차트 아이콘을 클릭합니다. MLflow는 메트릭마다 하나의 차트를 그리며, 각 실행은 모든 차트에서 같은 색상으로 표시됩니다:
++
+* `overall_accuracy`와 `overall_score`는 두 실험 모두 기록하므로, 이 차트에서 두 실행이 나란히 표시됩니다.
+* `category_accuracy.<category>` 및 `supercategory_accuracy.<category>` 차트에는 해당 카테고리가 포함된 벤치마크의 실행만 표시됩니다. 예를 들어 `category_accuracy.Economy`는 CLIcK 스모크 테스트에서, `category_accuracy.correct_definition_matching`은 HAE-RAE에서 나온 차트입니다.
++
+image::unified/img-compare-experiments-metrics.png[카테고리별 정확도 차트와 실험마다 하나의 막대가 표시된 overall_accuracy 차트를 보여 주는 두 실험의 실행 차트 보기]
++
+실행 옆의 눈 아이콘을 클릭하면 해당 실행을 차트에서 숨기거나 표시할 수 있습니다.
+
+IMPORTANT: 두 실험은 서로 다른 벤치마크와 서로 다른 문항 수로 실행되었으므로, 점수를 모델 품질의 척도로 비교할 수 없습니다. 이 단계는 비교 보기를 익히는 용도로 사용합니다. 실제로 모델이나 모델 버전을 비교하려면 단계 5.3 끝의 팁에서 설명한 것처럼 동일한 벤치마크를 동일한 설정으로 실행합니다.
+
+서로 다른 실험을 비교할 수는 있지만, 각 실험을 직접 찾아서 선택해야 합니다. 결과를 비교할 계획이라면 통합 노트북처럼 작업을 하나의 실험에 제출하여 관련 실행이 처음부터 한곳에 모이도록 합니다.
 
 모듈 6의 콘텐츠 안전 가드레일 평가는 선택 사항입니다. 시간이 있다면 xref:kr/module-06-guardrails.adoc#guardrails-kr[모듈 6]으로 이동합니다. 그렇지 않다면 xref:kr/module-07-closing.adoc#closing-kr[마무리 및 참고 자료]로 이동합니다.

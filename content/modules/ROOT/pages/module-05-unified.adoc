@@ -10,6 +10,7 @@ By the end of this module, you will have:
 * An understanding of why release decisions need accuracy and performance results for the same model version
 * Five accuracy jobs and one performance job recorded under one MLflow experiment
 * A comparison of all results in the notebook and in MLflow
+* A comparison of two separate experiments from earlier modules in MLflow
 
 == Why a Unified Evaluation?
 
@@ -179,5 +180,46 @@ Click the eye icon next to a run in the list to hide it from or show it in the c
 image::unified/img-unified-mlflow-charts.png[Chart view of the full-eval experiment comparing category accuracy, overall accuracy, and overall score across the accuracy runs]
 
 TIP: When you evaluate another model or a new version later, keep the benchmark IDs, `LIMIT`, and GuideLLM profile the same. MLflow comparisons are only meaningful when the evaluation settings match.
+
+== Step 5.4: Compare Experiments in MLflow
+
+In Step 5.3, you compared runs inside one experiment. MLflow can also compare runs across separate experiments. In this step, you compare the two Korean MCQ experiments from earlier modules:
+
+[cols="1,1,2",options="header"]
+|===
+| Experiment | Created in | What it ran
+
+| `korean-llm-evaluation`
+| Module 2
+| The smoke test: 20 CLIcK questions
+
+| `korean-haerae-eval`
+| Module 4
+| The HAE-RAE accuracy job, with the `LIMIT` you set in the notebook
+|===
+
+. In the {productname-short} dashboard, expand *Develop & train* in the left navigation and click *Experiments*.
+. Select your project from the *Project* drop-down.
+. In the experiment list, select the checkboxes next to `korean-haerae-eval` and `korean-llm-evaluation`, then click *Compare* above the list.
++
+image::unified/img-compare-experiments.png[Experiments list with the korean-haerae-eval and korean-llm-evaluation checkboxes selected and the Compare button highlighted]
+
+. The page *Displaying Runs from 2 Experiments* opens with one run list for both experiments:
++
+* The runs named after a job ID with the suffix `_0` contain the accuracy metrics, one from each experiment. In the example below, `97a2cc5c-..._0` is the Module 2 smoke test and `8eb3ae4e-..._0` is the Module 4 HAE-RAE job.
+* `haerae-eval` is the run that EvalHub created when the Module 4 job was submitted. It has no metrics.
+
+. Click the chart icon above the run list. MLflow draws one chart per metric, and each run keeps the same color in every chart:
++
+* `overall_accuracy` and `overall_score` are logged by both experiments, so both runs appear side by side in these charts.
+* The `category_accuracy.<category>` and `supercategory_accuracy.<category>` charts show only the run whose benchmark contains that category. For example, `category_accuracy.Economy` comes from the CLIcK smoke test, and `category_accuracy.correct_definition_matching` comes from HAE-RAE.
++
+image::unified/img-compare-experiments-metrics.png[Chart view of runs from two experiments showing category accuracy charts for each benchmark and an overall_accuracy chart with one bar per experiment]
++
+Click the eye icon next to a run to hide it from or show it in the charts.
+
+IMPORTANT: These two experiments ran different benchmarks with different numbers of questions, so their scores are not comparable as a measure of model quality. Use this step to learn the comparison view. To compare models or model versions in practice, run the same benchmarks with the same settings, as described in the tip at the end of Step 5.3.
+
+Comparing separate experiments works, but you have to find and select each one. When you plan to compare results, submit the jobs to a single experiment, as the unified notebook does, so that all related runs are already in one place.
 
 Module 6, content-safety guardrail evaluation, is optional. If you have time, continue to xref:module-06-guardrails.adoc#guardrails[Module 6]. Otherwise, head to xref:module-07-closing.adoc#closing[Closing and Resources].
